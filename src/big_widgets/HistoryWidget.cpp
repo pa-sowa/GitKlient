@@ -34,6 +34,7 @@
 #include <QMenu>
 #include <QMessageBox>
 #include <QPushButton>
+#include <QSplitter>
 #include <QStackedWidget>
 
 using namespace QLogger;
@@ -84,7 +85,7 @@ HistoryWidget::HistoryWidget(const QSharedPointer<GitCache> &cache, const QShare
 
    const auto wipFrame = new QFrame();
    wipFrame->setLayout(wipLayout);
-   wipFrame->setFixedWidth(350);
+   //wipFrame->resize(350, 0);
 
    connect(mWipWidget, &WipWidget::signalShowDiff, this, &HistoryWidget::showFileDiff);
    connect(mWipWidget, &WipWidget::signalChangesCommitted, this, &HistoryWidget::returnToView);
@@ -209,12 +210,23 @@ HistoryWidget::HistoryWidget(const QSharedPointer<GitCache> &cache, const QShare
       showFileDiffEdition(CommitInfo::ZERO_SHA, mCache->commitInfo(CommitInfo::ZERO_SHA).parent(0), fileName);
    });
 
+   wipFrame->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred);
+   mCenterStackedWidget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
+   mBranchesWidget->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred);
+
    const auto layout = new QHBoxLayout(this);
-   layout->setContentsMargins(QMargins());
-   layout->setSpacing(10);
-   layout->addWidget(wipFrame);
-   layout->addWidget(mCenterStackedWidget);
-   layout->addWidget(mBranchesWidget);
+   auto splitter = new QSplitter(Qt::Horizontal, this);
+   splitter->addWidget(wipFrame);
+   splitter->addWidget(mCenterStackedWidget);
+   splitter->addWidget(mBranchesWidget);
+   layout->addWidget(splitter);
+
+//   const auto layout = new QHBoxLayout(this);
+//   layout->setContentsMargins(QMargins());
+//   layout->setSpacing(10);
+//   layout->addWidget(wipFrame);
+//   layout->addWidget(mCenterStackedWidget);
+//   layout->addWidget(mBranchesWidget);
 
    mCenterStackedWidget->setCurrentIndex(static_cast<int>(Pages::Graph));
    mCenterStackedWidget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
