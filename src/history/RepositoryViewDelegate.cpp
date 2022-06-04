@@ -44,7 +44,6 @@ void RepositoryViewDelegate::paint(QPainter *p, const QStyleOptionViewItem &opt,
    p->setRenderHints(QPainter::Antialiasing);
 
    QStyleOptionViewItem newOpt(opt);
-   newOpt.font.setPointSize(9);
 
    if (newOpt.state & QStyle::State_Selected)
       p->fillRect(newOpt.rect, GitQlientStyles::getGraphSelectionColor());
@@ -60,17 +59,20 @@ void RepositoryViewDelegate::paint(QPainter *p, const QStyleOptionViewItem &opt,
    if (commit.sha().isEmpty())
       return;
 
+   QPalette palette;
+   QColor textColor = (newOpt.state & QStyle::State_Selected) ? palette.color(QPalette::HighlightedText)
+                                                              : palette.color(QPalette::Text);
+
    if (index.column() == static_cast<int>(CommitHistoryColumns::Graph))
    {
       newOpt.rect.setX(newOpt.rect.x() + 10);
       paintGraph(p, newOpt, commit);
    }
    else if (index.column() == static_cast<int>(CommitHistoryColumns::Log))
-      paintLog(p, newOpt, commit, index.data().toString());
+      paintLog(p, newOpt, commit, index.data().toString(), textColor);
    else
    {
-
-      p->setPen(GitQlientStyles::getTextColor());
+      p->setPen(textColor);
       newOpt.rect.setX(newOpt.rect.x() + 10);
 
       QTextOption textalignment(Qt::AlignLeft | Qt::AlignVCenter);
@@ -421,7 +423,7 @@ void RepositoryViewDelegate::paintGraph(QPainter *p, const QStyleOptionViewItem 
 }
 
 void RepositoryViewDelegate::paintLog(QPainter *p, const QStyleOptionViewItem &opt, const CommitInfo &commit,
-                                      const QString &text) const
+                                      const QString &text, QColor textColor) const
 {
    const auto sha = commit.sha();
 
@@ -447,7 +449,7 @@ void RepositoryViewDelegate::paintLog(QPainter *p, const QStyleOptionViewItem &o
    QFontMetrics fm(newOpt.font);
 
    p->setFont(newOpt.font);
-   p->setPen(GitQlientStyles::getTextColor());
+   p->setPen(textColor);
    p->drawText(newOpt.rect, fm.elidedText(text, Qt::ElideRight, newOpt.rect.width()),
                QTextOption(Qt::AlignLeft | Qt::AlignVCenter));
 }

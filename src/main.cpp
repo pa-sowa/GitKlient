@@ -23,9 +23,6 @@ int main(int argc, char *argv[])
    QApplication::setApplicationVersion(VER);
    QApplication::setWindowIcon(QIcon(":/icons/GitQlientLogoIco"));
 
-   QFontDatabase::addApplicationFont(":/DejaVuSans");
-   QFontDatabase::addApplicationFont(":/DejaVuSansMono");
-
    QStringList repos;
    if (GitQlient::parseArguments(app.arguments(), &repos))
    {

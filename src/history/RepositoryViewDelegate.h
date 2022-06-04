@@ -23,8 +23,8 @@
  ** Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  ***************************************************************************************/
 
-#include <QStyledItemDelegate>
 #include <QDateTime>
+#include <QStyledItemDelegate>
 
 class CommitHistoryView;
 class GitCache;
@@ -97,7 +97,8 @@ private:
     * @param o The style options of the item.
     * @param i The index with the item data.
     */
-   void paintLog(QPainter *p, const QStyleOptionViewItem &o, const CommitInfo &commit, const QString &text) const;
+   void paintLog(QPainter *p, const QStyleOptionViewItem &o, const CommitInfo &commit, const QString &text,
+                 QColor textColor) const;
    /**
     * @brief Method that sets up the configuration to paint the lane for the commit graph representation.
     *
