@@ -63,7 +63,7 @@
     </widget>
    </item>
    <item row="3" column="0" colspan="3">
-    <widget class="CheckBox" name="chSquash">
+    <widget class="QCheckBox" name="chSquash">
      <property name="text">
       <string>Squash commits</string>
      </property>
@@ -71,13 +71,6 @@
    </item>
   </layout>
  </widget>
- <customwidgets>
-  <customwidget>
-   <class>CheckBox</class>
-   <extends>QCheckBox</extends>
-   <header>CheckBox.h</header>
-  </customwidget>
- </customwidgets>
  <tabstops>
   <tabstop>leUrl</tabstop>
   <tabstop>leReference</tabstop>

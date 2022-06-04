@@ -2,8 +2,8 @@
 #include "ui_BranchDlg.h"
 
 #include <GitBranches.h>
-#include <GitStashes.h>
 #include <GitQlientStyles.h>
+#include <GitStashes.h>
 
 #include <QFile>
 #include <QMessageBox>
@@ -48,7 +48,7 @@ BranchDlg::BranchDlg(BranchDlgConfig config, QWidget *parent)
          break;
       case BranchDlgMode::PUSH_UPSTREAM:
          ui->chbCopyRemote->setVisible(true);
-         connect(ui->chbCopyRemote, &CheckBox::clicked, this, &BranchDlg::copyBranchName);
+         connect(ui->chbCopyRemote, &QCheckBox::clicked, this, &BranchDlg::copyBranchName);
          setWindowTitle(tr("Push upstream branch"));
          ui->pbAccept->setText(tr("Push"));
          break;

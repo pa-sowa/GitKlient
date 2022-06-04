@@ -1,36 +1,34 @@
 #include <JenkinsJobPanel.h>
 
 #include <BuildGeneralInfoFetcher.h>
-#include <CheckBox.h>
 #include <ButtonLink.hpp>
-#include <QPinnableTabWidget.h>
-#include <JobDetailsFetcher.h>
 #include <DiffHelper.h>
+#include <JobDetailsFetcher.h>
+#include <QPinnableTabWidget.h>
 
 #include <QLogger.h>
 
-#include <QTimer>
 #include <QAuthenticator>
-#include <QUrlQuery>
+#include <QButtonGroup>
+#include <QCheckBox>
 #include <QComboBox>
-#include <QLineEdit>
-#include <QPlainTextEdit>
-#include <QUrl>
+#include <QDesktopServices>
 #include <QFile>
-#include <QLabel>
-#include <QGroupBox>
 #include <QGridLayout>
-#include <QScrollArea>
-#include <QRadioButton>
-#include <QButtonGroup>
-#include <QButtonGroup>
-#include <QStandardPaths>
+#include <QGroupBox>
+#include <QLabel>
+#include <QLineEdit>
+#include <QMessageBox>
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
-#include <QMessageBox>
+#include <QPlainTextEdit>
 #include <QPushButton>
-#include <QDesktopServices>
-#include <QMessageBox>
+#include <QRadioButton>
+#include <QScrollArea>
+#include <QStandardPaths>
+#include <QTimer>
+#include <QUrl>
+#include <QUrlQuery>
 
 using namespace QLogger;
 
@@ -347,10 +345,10 @@ void JenkinsJobPanel::createBuildConfigPanel()
 
       if (config.fieldType == JobConfigFieldType::Bool)
       {
-         const auto check = new CheckBox();
+         const auto check = new QCheckBox();
          check->setChecked(config.defaultValue.toBool());
          mBuildValues[config.name] = qMakePair(JobConfigFieldType::Bool, config.defaultValue);
-         connect(check, &CheckBox::stateChanged, this, [this, name = config.name](int checkState) {
+         connect(check, &QCheckBox::stateChanged, this, [this, name = config.name](int checkState) {
             mBuildValues[name] = qMakePair(JobConfigFieldType::Bool, checkState == Qt::Checked);
          });
 

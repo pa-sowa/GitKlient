@@ -1,29 +1,29 @@
 #include "GeneralConfigDlg.h"
 
+#include <ButtonLink.hpp>
 #include <GitQlientSettings.h>
 #include <GitQlientStyles.h>
 #include <QLogger.h>
-#include <CheckBox.h>
-#include <ButtonLink.hpp>
 
-#include <QSpinBox>
+#include <QCheckBox>
 #include <QComboBox>
-#include <QLabel>
-#include <QVBoxLayout>
-#include <QPushButton>
-#include <QLineEdit>
-#include <QMessageBox>
 #include <QFileDialog>
-#include <QStandardPaths>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QLabel>
+#include <QLineEdit>
+#include <QMessageBox>
+#include <QPushButton>
+#include <QSpinBox>
+#include <QStandardPaths>
+#include <QVBoxLayout>
 
 using namespace QLogger;
 
 GeneralConfigDlg::GeneralConfigDlg(QWidget *parent)
    : QDialog(parent)
    , mSettings(new GitQlientSettings())
-   , mDisableLogs(new CheckBox())
+   , mDisableLogs(new QCheckBox())
    , mLevelCombo(new QComboBox())
    , mStylesSchema(new QComboBox())
    , mGitLocation(new QLineEdit())

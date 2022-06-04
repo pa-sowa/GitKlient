@@ -26,7 +26,7 @@
 #include <QDialog>
 
 class QSpinBox;
-class CheckBox;
+class QCheckBox;
 class QComboBox;
 class QLabel;
 class QPushButton;
@@ -54,7 +54,7 @@ public:
 
 private:
    QSharedPointer<GitQlientSettings> mSettings;
-   CheckBox *mDisableLogs = nullptr;
+   QCheckBox *mDisableLogs = nullptr;
    QComboBox *mLevelCombo = nullptr;
    QComboBox *mStylesSchema = nullptr;
    QLineEdit *mGitLocation = nullptr;

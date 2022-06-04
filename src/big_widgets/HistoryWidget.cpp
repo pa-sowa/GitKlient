@@ -2,7 +2,6 @@
 
 #include <AmendWidget.h>
 #include <BranchesWidget.h>
-#include <CheckBox.h>
 #include <CommitHistoryModel.h>
 #include <CommitHistoryView.h>
 #include <CommitInfo.h>
@@ -28,6 +27,7 @@
 #include <QLogger.h>
 
 #include <QApplication>
+#include <QCheckBox>
 #include <QGridLayout>
 #include <QLabel>
 #include <QLineEdit>
@@ -167,9 +167,9 @@ HistoryWidget::HistoryWidget(const QSharedPointer<GitCache> &cache, const QShare
    connect(mSearchInput, &QLineEdit::textChanged, this,
            [cherryPickBtn](const QString &text) { cherryPickBtn->setEnabled(!text.isEmpty()); });
 
-   mChShowAllBranches = new CheckBox(tr("Show all branches"));
+   mChShowAllBranches = new QCheckBox(tr("Show all branches"));
    mChShowAllBranches->setChecked(mSettings->localValue("ShowAllBranches", true).toBool());
-   connect(mChShowAllBranches, &CheckBox::toggled, this, &HistoryWidget::onShowAllUpdated);
+   connect(mChShowAllBranches, &QCheckBox::toggled, this, &HistoryWidget::onShowAllUpdated);
 
    const auto graphOptionsLayout = new QHBoxLayout();
    graphOptionsLayout->setContentsMargins(QMargins());

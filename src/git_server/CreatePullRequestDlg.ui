@@ -84,14 +84,14 @@
       </widget>
      </item>
      <item row="6" column="1">
-      <widget class="CheckBox" name="chDraft">
+      <widget class="QCheckBox" name="chDraft">
        <property name="text">
         <string>Mark as draft</string>
        </property>
       </widget>
      </item>
      <item row="7" column="1">
-      <widget class="CheckBox" name="chModify">
+      <widget class="QCheckBox" name="chModify">
        <property name="text">
         <string>Allow maintainers to modify the Pull Request</string>
        </property>
@@ -165,11 +165,6 @@
   </layout>
  </widget>
  <customwidgets>
-  <customwidget>
-   <class>CheckBox</class>
-   <extends>QCheckBox</extends>
-   <header>CheckBox.h</header>
-  </customwidget>
   <customwidget>
    <class>QWebEngineView</class>
    <extends>QWidget</extends>

@@ -52,7 +52,7 @@
     </layout>
    </item>
    <item row="1" column="1">
-    <widget class="CheckBox" name="chDevMode">
+    <widget class="QCheckBox" name="chDevMode">
      <property name="text">
       <string>Enable developer mode</string>
      </property>
@@ -117,7 +117,7 @@
            </widget>
           </item>
           <item row="0" column="2">
-           <widget class="CheckBox" name="chDisableLogs">
+           <widget class="QCheckBox" name="chDisableLogs">
             <property name="text">
              <string/>
             </property>
@@ -307,14 +307,14 @@
                </widget>
               </item>
               <item row="12" column="1">
-               <widget class="CheckBox" name="cbSubtree">
+               <widget class="QCheckBox" name="cbSubtree">
                 <property name="text">
                  <string/>
                 </property>
                </widget>
               </item>
               <item row="10" column="1">
-               <widget class="CheckBox" name="cbStash">
+               <widget class="QCheckBox" name="cbStash">
                 <property name="text">
                  <string/>
                 </property>
@@ -362,14 +362,14 @@
                </widget>
               </item>
               <item row="11" column="1">
-               <widget class="CheckBox" name="cbSubmodule">
+               <widget class="QCheckBox" name="cbSubmodule">
                 <property name="text">
                  <string/>
                 </property>
                </widget>
               </item>
               <item row="6" column="1">
-               <widget class="CheckBox" name="updateOnPull">
+               <widget class="QCheckBox" name="updateOnPull">
                 <property name="text">
                  <string/>
                 </property>
@@ -406,7 +406,7 @@
                </widget>
               </item>
               <item row="9" column="1">
-               <widget class="CheckBox" name="cbPomodoroEnabled">
+               <widget class="QCheckBox" name="cbPomodoroEnabled">
                 <property name="text">
                  <string/>
                 </property>
@@ -470,7 +470,7 @@
                <widget class="QComboBox" name="cbTranslations"/>
               </item>
               <item row="7" column="1">
-               <widget class="CheckBox" name="clangFormat">
+               <widget class="QCheckBox" name="clangFormat">
                 <property name="text">
                  <string/>
                 </property>
@@ -517,7 +517,7 @@
                </widget>
               </item>
               <item row="5" column="1">
-               <widget class="CheckBox" name="pruneOnFetch">
+               <widget class="QCheckBox" name="pruneOnFetch">
                 <property name="text">
                  <string/>
                 </property>
@@ -604,7 +604,7 @@
            </widget>
           </item>
           <item row="0" column="1">
-           <widget class="CheckBox" name="chBoxBuildSystem">
+           <widget class="QCheckBox" name="chBoxBuildSystem">
             <property name="text">
              <string/>
             </property>
@@ -671,11 +671,6 @@
    <class>ButtonLink</class>
    <extends>QLabel</extends>
    <header>ButtonLink.hpp</header>
-  </customwidget>
-  <customwidget>
-   <class>CheckBox</class>
-   <extends>QCheckBox</extends>
-   <header>CheckBox.h</header>
   </customwidget>
  </customwidgets>
  <tabstops>
