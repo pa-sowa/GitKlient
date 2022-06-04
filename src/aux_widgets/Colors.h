@@ -36,8 +36,8 @@ static const QColor graphBackgroundColorDark(46, 47, 48); //#2E2F30
 static const QColor graphBackgroundColorBright(255, 255, 255); //#FFFFFF
 static const QColor graphBlueDark(87, 155, 213); //#579BD5
 static const QColor graphBlueBright(50, 92, 199); //#325CC7
-static const QColor graphRed(255, 34, 34); //#FF2222
-static const QColor graphGreen(101, 149, 43); //#65952B
+static const QColor graphRed = 0xda4453;
+static const QColor graphGreen = 0x27ae60;
 static const QColor graphOrange(255, 147, 32); //#FF9320
 static const QColor graphGrey(132, 132, 132); //#848484
 static const QColor graphPink(255, 121, 198); //#FF79C6
