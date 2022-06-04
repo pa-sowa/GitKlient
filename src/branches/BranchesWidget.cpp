@@ -72,12 +72,12 @@ BranchesWidget::BranchesWidget(const QSharedPointer<GitCache> &cache, const QSha
    , mRemoteBranchesTree(new BranchTreeWidget(mGit))
    , mTagsTree(new QTreeWidget())
    , mStashesList(new QListWidget())
-   , mStashesCount(new QLabel(tr("(0)")))
+   , mStashesTitleLabel(new QLabel(tr("Stashes (0)")))
    , mStashesArrow(new QLabel())
-   , mSubmodulesCount(new QLabel("(0)"))
+   , mSubmodulesTitleLabel(new QLabel(tr("Submodules (0)")))
    , mSubmodulesArrow(new QLabel())
    , mSubmodulesList(new QListWidget())
-   , mSubtreeCount(new QLabel("(0)"))
+   , mSubtreeTitleLabel(new QLabel(tr("Subtrees (0)")))
    , mSubtreeArrow(new QLabel())
    , mSubtreeList(new QListWidget())
    , mMinimize(new QPushButton())
@@ -125,10 +125,8 @@ BranchesWidget::BranchesWidget(const QSharedPointer<GitCache> &cache, const QSha
 
    const auto stashHeaderFrame = new ClickableFrame();
    const auto stashHeaderLayout = new QHBoxLayout(stashHeaderFrame);
-   stashHeaderLayout->setContentsMargins(10, 0, 0, 0);
-   stashHeaderLayout->setSpacing(10);
-   stashHeaderLayout->addWidget(new QLabel(tr("Stashes")));
-   stashHeaderLayout->addWidget(mStashesCount);
+   stashHeaderLayout->setContentsMargins(0, 0, 0, 0);
+   stashHeaderLayout->addWidget(mStashesTitleLabel);
    stashHeaderLayout->addStretch();
    stashHeaderLayout->addWidget(mStashesArrow);
 
@@ -160,10 +158,8 @@ BranchesWidget::BranchesWidget(const QSharedPointer<GitCache> &cache, const QSha
 
    const auto submoduleHeaderFrame = new ClickableFrame();
    const auto submoduleHeaderLayout = new QHBoxLayout(submoduleHeaderFrame);
-   submoduleHeaderLayout->setContentsMargins(10, 0, 0, 0);
-   submoduleHeaderLayout->setSpacing(10);
-   submoduleHeaderLayout->addWidget(new QLabel(tr("Submodules")));
-   submoduleHeaderLayout->addWidget(mSubmodulesCount);
+   submoduleHeaderLayout->setContentsMargins(0, 0, 0, 0);
+   submoduleHeaderLayout->addWidget(mSubmodulesTitleLabel);
    submoduleHeaderLayout->addStretch();
    submoduleHeaderLayout->addWidget(mSubmodulesArrow);
 
@@ -198,10 +194,8 @@ BranchesWidget::BranchesWidget(const QSharedPointer<GitCache> &cache, const QSha
 
    const auto subtreeHeaderFrame = new ClickableFrame();
    const auto subtreeHeaderLayout = new QHBoxLayout(subtreeHeaderFrame);
-   subtreeHeaderLayout->setContentsMargins(10, 0, 0, 0);
-   subtreeHeaderLayout->setSpacing(10);
-   subtreeHeaderLayout->addWidget(new QLabel(tr("Subtrees")));
-   subtreeHeaderLayout->addWidget(mSubtreeCount = new QLabel(tr("(0)")));
+   subtreeHeaderLayout->setContentsMargins(0, 0, 0, 0);
+   subtreeHeaderLayout->addWidget(mSubtreeTitleLabel);
    subtreeHeaderLayout->addStretch();
    subtreeHeaderLayout->addWidget(mSubtreeArrow);
 
@@ -694,7 +688,7 @@ void BranchesWidget::processStashes()
       mMinimal->configureStashesMenu(stashId, stashDesc);
    }
 
-   mStashesCount->setText(QString("(%1)").arg(stashes.count()));
+   mStashesTitleLabel->setText(tr("Stashes (%1)").arg(stashes.count()));
 }
 
 void BranchesWidget::processSubmodules()
@@ -712,7 +706,7 @@ void BranchesWidget::processSubmodules()
       mMinimal->configureSubmodulesMenu(submodule);
    }
 
-   mSubmodulesCount->setText('(' + QString::number(submodules.count()) + ')');
+   mSubmodulesTitleLabel->setText(tr("Submodules (%1)").arg(submodules.count()));
 }
 
 void BranchesWidget::processSubtrees()
@@ -750,7 +744,7 @@ void BranchesWidget::processSubtrees()
          }
       }
 
-      mSubtreeCount->setText('(' + QString::number(count) + ')');
+      mSubtreeTitleLabel->setText(tr("Subtrees (%1)").arg(count));
    }
 }
 

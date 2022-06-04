@@ -160,12 +160,12 @@ private:
    BranchesViewDelegate *mTagsDelegate = nullptr;
    QTreeWidget *mTagsTree = nullptr;
    QListWidget *mStashesList = nullptr;
-   QLabel *mStashesCount = nullptr;
+   QLabel *mStashesTitleLabel = nullptr;
    QLabel *mStashesArrow = nullptr;
-   QLabel *mSubmodulesCount = nullptr;
+   QLabel *mSubmodulesTitleLabel = nullptr;
    QLabel *mSubmodulesArrow = nullptr;
    QListWidget *mSubmodulesList = nullptr;
-   QLabel *mSubtreeCount = nullptr;
+   QLabel *mSubtreeTitleLabel = nullptr;
    QLabel *mSubtreeArrow = nullptr;
    QListWidget *mSubtreeList = nullptr;
    QPushButton *mMinimize = nullptr;
