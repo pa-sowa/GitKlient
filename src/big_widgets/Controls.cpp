@@ -10,7 +10,6 @@
 #include <GitRemote.h>
 #include <GitStashes.h>
 #include <GitTags.h>
-#include <PomodoroButton.h>
 #include <QLogger.h>
 
 #include <QApplication>
@@ -40,7 +39,6 @@ Controls::Controls(const QSharedPointer<GitCache> &cache, const QSharedPointer<G
    , mConfigBtn(new QToolButton())
    , mGitPlatform(new QToolButton())
    , mBuildSystem(new QToolButton())
-   , mPomodoro(new PomodoroButton(mGit))
    , mVersionCheck(new QToolButton())
    , mMergeWarning(new QPushButton(tr("WARNING: There is a merge pending to be committed! Click here to solve it.")))
    , mUpdater(new GitQlientUpdater(this))
@@ -167,8 +165,6 @@ Controls::Controls(const QSharedPointer<GitCache> &cache, const QSharedPointer<G
 
    hLayout->addWidget(mRefreshBtn);
    hLayout->addWidget(mConfigBtn);
-   // hLayout->addWidget(mPomodoro);
-   mPomodoro->hide();
    hLayout->addWidget(mVersionCheck);
    hLayout->addStretch();
 
