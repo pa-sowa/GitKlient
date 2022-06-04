@@ -1,25 +1,24 @@
 #include <GitServerWidget.h>
 
-#include <ServerConfigDlg.h>
-#include <GitServerCache.h>
 #include <CreateIssueDlg.h>
 #include <CreatePullRequestDlg.h>
+#include <GitBase.h>
 #include <GitHubRestApi.h>
 #include <GitLabRestApi.h>
-#include <IssuesList.h>
-#include <PrList.h>
+#include <GitServerCache.h>
 #include <IssueDetailedView.h>
+#include <IssuesList.h>
 #include <Platform.h>
-#include <GitBase.h>
+#include <PrList.h>
+#include <ServerConfigDlg.h>
 
-#include <QPushButton>
-#include <QToolButton>
 #include <QHBoxLayout>
-#include <QScrollArea>
-#include <QStackedLayout>
 #include <QLabel>
 #include <QMessageBox>
+#include <QPushButton>
+#include <QScrollArea>
 #include <QStackedLayout>
+#include <QToolButton>
 
 using namespace GitServer;
 
@@ -70,7 +69,7 @@ void GitServerWidget::createWidget()
        mGitServerCache->getPlatform() == GitServer::Platform::GitHub ? "pull request" : "merge request");
 
    const auto home = new QPushButton();
-   home->setIcon(QIcon(":/icons/home"));
+   home->setIcon(QIcon::fromTheme("go-home", QIcon(":/icons/home")));
    home->setToolTip(tr("General view"));
 
    const auto newIssue = new QPushButton();
@@ -82,7 +81,7 @@ void GitServerWidget::createWidget()
    newPr->setToolTip(tr("Create a new %1").arg(prLabel));
 
    const auto refresh = new QPushButton();
-   refresh->setIcon(QIcon(":/icons/refresh"));
+   refresh->setIcon(QIcon::fromTheme("view-refresh", QIcon(":/icons/refresh")));
    refresh->setToolTip(tr("Refresh"));
 
    const auto buttonsLayout = new QHBoxLayout();

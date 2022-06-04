@@ -1,22 +1,22 @@
 ﻿#include <IssueDetailedView.h>
 
-#include <IssueItem.h>
+#include <AddCodeReviewDialog.h>
 #include <CircularPixmap.h>
 #include <GitServerCache.h>
 #include <IRestApi.h>
-#include <PrCommitsList.h>
+#include <IssueItem.h>
 #include <PrChangesList.h>
 #include <PrCommentsList.h>
-#include <AddCodeReviewDialog.h>
+#include <PrCommitsList.h>
 
-#include <QMessageBox>
-#include <QLocale>
-#include <QPushButton>
-#include <QToolButton>
 #include <QButtonGroup>
-#include <QStackedLayout>
-#include <QMenu>
 #include <QEvent>
+#include <QLocale>
+#include <QMenu>
+#include <QMessageBox>
+#include <QPushButton>
+#include <QStackedLayout>
+#include <QToolButton>
 
 using namespace GitServer;
 
@@ -54,7 +54,7 @@ IssueDetailedView::IssueDetailedView(const QSharedPointer<GitBase> &git,
    mBtnGroup->addButton(changes, static_cast<int>(Buttons::Changes));
 
    const auto commits = new QToolButton();
-   commits->setIcon(QIcon(":/icons/commit"));
+   commits->setIcon(QIcon::fromTheme("commit", QIcon(":/icons/commit")));
    commits->setObjectName("ViewBtnOption");
    commits->setToolTip(tr("Commits view"));
    commits->setCheckable(true);
@@ -114,7 +114,7 @@ IssueDetailedView::IssueDetailedView(const QSharedPointer<GitBase> &git,
    connect(mCloseIssue, &QPushButton::clicked, this, &IssueDetailedView::closeIssue);
 
    const auto refresh = new QPushButton(this);
-   refresh->setIcon(QIcon(":/icons/refresh"));
+   refresh->setIcon(QIcon::fromTheme("view-refresh", QIcon(":/icons/refresh")));
    refresh->setObjectName("ViewBtnOption");
    refresh->setToolTip(tr("Refresh"));
    connect(refresh, &QPushButton::clicked, this, [this]() { loadData(mConfig, mIssueNumber, true); });

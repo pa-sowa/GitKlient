@@ -45,7 +45,7 @@ GitQlient::GitQlient(QWidget *parent)
    const auto homeMenu = new QPushButton();
    const auto menu = new QMenu(homeMenu);
 
-   homeMenu->setIcon(QIcon(":/icons/burger_menu"));
+   homeMenu->setIcon(QIcon::fromTheme("application-menu", QIcon(":/icons/burger_menu")));
    homeMenu->setIconSize(QSize(17, 17));
    homeMenu->setToolTip("Options");
    homeMenu->setMenu(menu);
@@ -357,7 +357,8 @@ void GitQlient::addNewRepoTab(const QString &repoPathArg, bool pinned)
             const auto output = p.readAll().trimmed();
             const auto isSubmodule = !output.isEmpty();
 
-            mRepos->setTabIcon(index, QIcon(isSubmodule ? QString(":/icons/submodules") : QString(":/icons/local")));
+            mRepos->setTabIcon(
+                index, isSubmodule ? QIcon(":/icons/submodules") : QIcon::fromTheme("folder", QIcon(":/icons/local")));
 
             QLog_Info("UI", "Attaching repository to a new tab");
 

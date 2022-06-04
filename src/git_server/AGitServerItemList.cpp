@@ -1,17 +1,17 @@
 #include <AGitServerItemList.h>
 
-#include <GitServerCache.h>
-#include <IssueItem.h>
 #include <ClickableFrame.h>
+#include <GitServerCache.h>
 #include <IRestApi.h>
+#include <IssueItem.h>
 
-#include <QVBoxLayout>
 #include <QLabel>
 #include <QPushButton>
 #include <QScrollArea>
-#include <QTimer>
 #include <QSpinBox>
+#include <QTimer>
 #include <QToolButton>
+#include <QVBoxLayout>
 
 using namespace GitServer;
 
@@ -27,7 +27,7 @@ AGitServerItemList::AGitServerItemList(const QSharedPointer<GitServerCache> &git
    headerFrame->setObjectName("IssuesHeaderFrame");
    connect(headerFrame, &ClickableFrame::clicked, this, &AGitServerItemList::onHeaderClicked);
 
-   mArrow->setPixmap(QIcon(":/icons/remove").pixmap(QSize(15, 15)));
+   mArrow->setPixmap(QIcon::fromTheme("list-remove", QIcon(":/icons/remove")).pixmap(QSize(15, 15)));
 
    const auto headerLayout = new QHBoxLayout(headerFrame);
    headerLayout->setContentsMargins(QMargins());
@@ -88,7 +88,8 @@ void AGitServerItemList::createContent(QVector<IssueItem *> items)
 
    mIssuesLayout->addWidget(mScrollArea);
 
-   const auto icon = QIcon(mScrollArea->isVisible() ? QString(":/icons/add") : QString(":/icons/remove"));
+   const auto icon = mScrollArea->isVisible() ? QIcon::fromTheme("list-add", QIcon(":/icons/add"))
+                                              : QIcon::fromTheme("list-remove", QIcon(":/icons/remove"));
    mArrow->setPixmap(icon.pixmap(QSize(15, 15)));
 
    setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Minimum);
@@ -102,7 +103,8 @@ void AGitServerItemList::onHeaderClicked()
 
       mScrollArea->setWidgetResizable(issuesVisible);
 
-      const auto icon = QIcon(issuesVisible ? QString(":/icons/add") : QString(":/icons/remove"));
+      const auto icon = issuesVisible ? QIcon::fromTheme("list-add", QIcon(":/icons/add"))
+                                      : QIcon::fromTheme("list-remove", QIcon(":/icons/remove"));
       mArrow->setPixmap(icon.pixmap(QSize(15, 15)));
       mScrollArea->setVisible(!issuesVisible);
 

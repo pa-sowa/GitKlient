@@ -1,18 +1,18 @@
 #include "BranchesWidgetMinimal.h"
 
 #include <GitCache.h>
-#include <GitSubmodules.h>
 #include <GitStashes.h>
+#include <GitSubmodules.h>
 
-#include <QVBoxLayout>
+#include <QEvent>
 #include <QLabel>
 #include <QMenu>
-#include <QToolButton>
 #include <QPushButton>
-#include <QEvent>
+#include <QToolButton>
+#include <QVBoxLayout>
 
-BranchesWidgetMinimal::BranchesWidgetMinimal(const QSharedPointer<GitCache> &cache,
-                                             const QSharedPointer<GitBase> git, QWidget *parent)
+BranchesWidgetMinimal::BranchesWidgetMinimal(const QSharedPointer<GitCache> &cache, const QSharedPointer<GitBase> git,
+                                             QWidget *parent)
    : QFrame(parent)
    , mGit(git)
    , mCache(cache)
@@ -28,7 +28,7 @@ BranchesWidgetMinimal::BranchesWidgetMinimal(const QSharedPointer<GitCache> &cac
    , mSubmodules(new QToolButton())
    , mSubmodulesMenu(new QMenu(mSubmodules))
 {
-   mBack->setIcon(QIcon(":/icons/back"));
+   mBack->setIcon(QIcon::fromTheme("sidebar-expand-right", QIcon(":/icons/back")));
    mBack->setToolTip(tr("Full view"));
    connect(mBack, &QPushButton::clicked, this, &BranchesWidgetMinimal::showFullBranchesView);
 
@@ -44,7 +44,7 @@ BranchesWidgetMinimal::BranchesWidgetMinimal(const QSharedPointer<GitCache> &cac
 
    mLocalMenu->installEventFilter(this);
    mLocal->setMenu(mLocalMenu);
-   mLocal->setIcon(QIcon(":/icons/local"));
+   mLocal->setIcon(QIcon::fromTheme("folder", QIcon(":/icons/local")));
    mLocal->setPopupMode(QToolButton::InstantPopup);
    mLocal->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
    mLocal->setText("   " + QString::number(mLocalMenu->actions().count()));
@@ -53,7 +53,7 @@ BranchesWidgetMinimal::BranchesWidgetMinimal(const QSharedPointer<GitCache> &cac
 
    mRemoteMenu->installEventFilter(this);
    mRemote->setMenu(mRemoteMenu);
-   mRemote->setIcon(QIcon(":/icons/server"));
+   mRemote->setIcon(QIcon::fromTheme("folder-cloud", QIcon(":/icons/server")));
    mRemote->setPopupMode(QToolButton::InstantPopup);
    mRemote->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
    mRemote->setText("   " + QString::number(mRemoteMenu->actions().count()));
@@ -62,7 +62,7 @@ BranchesWidgetMinimal::BranchesWidgetMinimal(const QSharedPointer<GitCache> &cac
 
    mTagsMenu->installEventFilter(this);
    mTags->setMenu(mTagsMenu);
-   mTags->setIcon(QIcon(":/icons/tags"));
+   mTags->setIcon(QIcon::fromTheme("tags", QIcon(":/icons/tags")));
    mTags->setPopupMode(QToolButton::InstantPopup);
    mTags->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
    mTags->setText("   " + QString::number(mTagsMenu->actions().count()));

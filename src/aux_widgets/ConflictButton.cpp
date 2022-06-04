@@ -23,11 +23,11 @@ ConflictButton::ConflictButton(const QString &filename, bool inConflict, const Q
    mFile->setCheckable(true);
    mFile->setChecked(inConflict);
 
-   mEdit->setIcon(QIcon(":/icons/edit"));
+   mEdit->setIcon(QIcon::fromTheme("document-edit", QIcon(":/icons/edit")));
    mEdit->setFixedSize(30, 30);
-   mResolve->setIcon(QIcon(":/icons/check"));
+   mResolve->setIcon(QIcon::fromTheme("checkbox", QIcon(":/icons/check")));
    mResolve->setFixedSize(30, 30);
-   mUpdate->setIcon(QIcon(":/icons/refresh"));
+   mUpdate->setIcon(QIcon::fromTheme("view-refresh", QIcon(":/icons/refresh")));
    mUpdate->setFixedSize(30, 30);
 
    const auto layout = new QHBoxLayout(this);

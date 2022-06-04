@@ -1,25 +1,25 @@
 ﻿#include "InitScreen.h"
 
-#include <GeneralConfigDlg.h>
+#include <ButtonLink.hpp>
 #include <CreateRepoDlg.h>
-#include <ProgressDlg.h>
-#include <GitQlientSettings.h>
+#include <GeneralConfigDlg.h>
 #include <GitBase.h>
 #include <GitConfig.h>
-#include <ButtonLink.hpp>
+#include <GitQlientSettings.h>
+#include <ProgressDlg.h>
 
-#include <QPushButton>
-#include <QGridLayout>
-#include <QFileDialog>
+#include <GitQlientStyles.h>
+#include <QApplication>
 #include <QButtonGroup>
+#include <QDesktopServices>
+#include <QFileDialog>
+#include <QGridLayout>
+#include <QLabel>
+#include <QMessageBox>
+#include <QPushButton>
 #include <QStackedWidget>
 #include <QStyle>
-#include <QLabel>
-#include <QApplication>
-#include <QMessageBox>
 #include <QtGlobal>
-#include <QDesktopServices>
-#include <GitQlientStyles.h>
 
 #include <QLogger.h>
 
@@ -75,7 +75,7 @@ InitScreen::InitScreen(QWidget *parent)
    gitqlientIcon->setPixmap(stagedIcon.pixmap(96, 96));
 
    const auto configBtn = new QPushButton();
-   configBtn->setIcon(QIcon(":/icons/config"));
+   configBtn->setIcon(QIcon::fromTheme("configure", QIcon(":/icons/config")));
    connect(configBtn, &QPushButton::clicked, this, &InitScreen::openConfigDlg);
 
    const auto titleLayout = new QHBoxLayout();

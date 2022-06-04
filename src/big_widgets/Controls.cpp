@@ -21,6 +21,7 @@
 #include <QProgressBar>
 #include <QPushButton>
 #include <QTimer>
+#include <QToolBar>
 #include <QToolButton>
 
 using namespace QLogger;
@@ -49,26 +50,29 @@ Controls::Controls(const QSharedPointer<GitCache> &cache, const QSharedPointer<G
 
    connect(mUpdater, &GitQlientUpdater::newVersionAvailable, this, [this]() { mVersionCheck->setVisible(true); });
 
+   mHistory->setText(tr("History"));
    mHistory->setCheckable(true);
-   mHistory->setIcon(QIcon(":/icons/git_orange"));
+   mHistory->setIcon(QIcon::fromTheme("vcs-commit", QIcon(":/icons/git_orange")));
    mHistory->setIconSize(QSize(22, 22));
    mHistory->setToolTip(tr("View"));
-   mHistory->setToolButtonStyle(Qt::ToolButtonIconOnly);
+   mHistory->setToolButtonStyle(Qt::ToolButtonFollowStyle);
    mBtnGroup->addButton(mHistory, static_cast<int>(ControlsMainViews::History));
 
+   mDiff->setText(tr("Diff"));
    mDiff->setCheckable(true);
-   mDiff->setIcon(QIcon(":/icons/diff"));
+   mDiff->setIcon(QIcon::fromTheme("vcs-diff", QIcon(":/icons/diff")));
    mDiff->setIconSize(QSize(22, 22));
    mDiff->setToolTip(tr("Diff"));
-   mDiff->setToolButtonStyle(Qt::ToolButtonIconOnly);
+   mDiff->setToolButtonStyle(Qt::ToolButtonFollowStyle);
    mDiff->setEnabled(false);
    mBtnGroup->addButton(mDiff, static_cast<int>(ControlsMainViews::Diff));
 
+   mBlame->setText(tr("Blame"));
    mBlame->setCheckable(true);
-   mBlame->setIcon(QIcon(":/icons/blame"));
+   mBlame->setIcon(QIcon::fromTheme("actor", QIcon(":/icons/blame")));
    mBlame->setIconSize(QSize(22, 22));
    mBlame->setToolTip(tr("Blame"));
-   mBlame->setToolButtonStyle(Qt::ToolButtonIconOnly);
+   mBlame->setToolButtonStyle(Qt::ToolButtonFollowStyle);
    mBtnGroup->addButton(mBlame, static_cast<int>(ControlsMainViews::Blame));
 
    const auto menu = new QMenu(mPullOptions);
@@ -82,41 +86,32 @@ Controls::Controls(const QSharedPointer<GitCache> &cache, const QSharedPointer<G
    menu->addSeparator();
 
    mPullBtn->setIconSize(QSize(22, 22));
+   mPullBtn->setText(tr("Pull"));
    mPullBtn->setToolTip(tr("Pull"));
-   mPullBtn->setToolButtonStyle(Qt::ToolButtonIconOnly);
+   mPullBtn->setToolButtonStyle(Qt::ToolButtonFollowStyle);
    mPullBtn->setPopupMode(QToolButton::InstantPopup);
-   mPullBtn->setIcon(QIcon(":/icons/git_pull"));
+   mPullBtn->setIcon(QIcon::fromTheme("vcs-pull", QIcon(":/icons/git_pull")));
    mPullBtn->setObjectName("ToolButtonAboveMenu");
+   mPullBtn->setMenu(menu);
 
-   mPullOptions->setMenu(menu);
-   mPullOptions->setIcon(QIcon(":/icons/arrow_down"));
-   mPullOptions->setIconSize(QSize(22, 22));
-   mPullOptions->setToolButtonStyle(Qt::ToolButtonIconOnly);
-   mPullOptions->setPopupMode(QToolButton::InstantPopup);
-   mPullOptions->setToolTip("Remote actions");
-   mPullOptions->setObjectName("ToolButtonWithMenu");
-
-   const auto pullLayout = new QVBoxLayout();
-   pullLayout->setContentsMargins(QMargins());
-   pullLayout->setSpacing(0);
-   pullLayout->addWidget(mPullBtn);
-   pullLayout->addWidget(mPullOptions);
-
-   mPushBtn->setIcon(QIcon(":/icons/git_push"));
+   mPushBtn->setText(tr("Push"));
+   mPushBtn->setIcon(QIcon::fromTheme("vcs-push", QIcon(":/icons/git_push")));
    mPushBtn->setIconSize(QSize(22, 22));
    mPushBtn->setToolTip(tr("Push"));
-   mPushBtn->setToolButtonStyle(Qt::ToolButtonIconOnly);
+   mPushBtn->setToolButtonStyle(Qt::ToolButtonFollowStyle);
 
-   mRefreshBtn->setIcon(QIcon(":/icons/refresh"));
+   mRefreshBtn->setText(tr("Refresh"));
+   mRefreshBtn->setIcon(QIcon::fromTheme("view-refresh", QIcon(":/icons/refresh")));
    mRefreshBtn->setIconSize(QSize(22, 22));
    mRefreshBtn->setToolTip(tr("Refresh"));
-   mRefreshBtn->setToolButtonStyle(Qt::ToolButtonIconOnly);
+   mRefreshBtn->setToolButtonStyle(Qt::ToolButtonFollowStyle);
 
+   mConfigBtn->setText(tr("Settings"));
    mConfigBtn->setCheckable(true);
-   mConfigBtn->setIcon(QIcon(":/icons/config"));
+   mConfigBtn->setIcon(QIcon::fromTheme("configure", QIcon(":/icons/config")));
    mConfigBtn->setIconSize(QSize(22, 22));
    mConfigBtn->setToolTip(tr("Config"));
-   mConfigBtn->setToolButtonStyle(Qt::ToolButtonIconOnly);
+   mConfigBtn->setToolButtonStyle(Qt::ToolButtonFollowStyle);
    mBtnGroup->addButton(mConfigBtn, static_cast<int>(ControlsMainViews::Config));
 
    const auto separator = new QFrame();
@@ -135,7 +130,6 @@ Controls::Controls(const QSharedPointer<GitCache> &cache, const QSharedPointer<G
    hLayout->addWidget(mDiff);
    hLayout->addWidget(mBlame);
    hLayout->addWidget(separator);
-   hLayout->addLayout(pullLayout);
    hLayout->addWidget(mPushBtn);
    hLayout->addWidget(separator2);
 
@@ -144,10 +138,10 @@ Controls::Controls(const QSharedPointer<GitCache> &cache, const QSharedPointer<G
    GitQlientSettings settings(mGit->getGitDir());
    mBuildSystem->setVisible(settings.localValue("BuildSystemEnabled", false).toBool());
    mBuildSystem->setCheckable(true);
-   mBuildSystem->setIcon(QIcon(":/icons/build_system"));
+   mBuildSystem->setIcon(QIcon::fromTheme("run-build", QIcon(":/icons/build_system")));
    mBuildSystem->setIconSize(QSize(22, 22));
    mBuildSystem->setToolTip("Jenkins");
-   mBuildSystem->setToolButtonStyle(Qt::ToolButtonIconOnly);
+   mBuildSystem->setToolButtonStyle(Qt::ToolButtonFollowStyle);
    mBuildSystem->setPopupMode(QToolButton::InstantPopup);
    mBtnGroup->addButton(mBuildSystem, static_cast<int>(ControlsMainViews::BuildSystem));
 
@@ -162,7 +156,7 @@ Controls::Controls(const QSharedPointer<GitCache> &cache, const QSharedPointer<G
    separator3->setFixedHeight(20);
    hLayout->addWidget(separator3);
 
-   mVersionCheck->setIcon(QIcon(":/icons/get_gitqlient"));
+   mVersionCheck->setIcon(QIcon::fromTheme("system-upgrade", QIcon(":/icons/get_gitqlient")));
    mVersionCheck->setIconSize(QSize(22, 22));
    mVersionCheck->setText(tr("New version"));
    mVersionCheck->setObjectName("longToolButton");
@@ -173,7 +167,8 @@ Controls::Controls(const QSharedPointer<GitCache> &cache, const QSharedPointer<G
 
    hLayout->addWidget(mRefreshBtn);
    hLayout->addWidget(mConfigBtn);
-   hLayout->addWidget(mPomodoro);
+   // hLayout->addWidget(mPomodoro);
+   mPomodoro->hide();
    hLayout->addWidget(mVersionCheck);
    hLayout->addStretch();
 
@@ -387,7 +382,7 @@ void Controls::createGitPlatformButton(QHBoxLayout *layout)
 {
    QScopedPointer<GitConfig> gitConfig(new GitConfig(mGit));
    const auto remoteUrl = gitConfig->getServerUrl();
-   QIcon gitPlatformIcon;
+   QString iconPath;
    QString name;
    QString prName;
    auto add = false;
@@ -396,7 +391,7 @@ void Controls::createGitPlatformButton(QHBoxLayout *layout)
    {
       add = true;
 
-      gitPlatformIcon = QIcon(":/icons/github");
+      iconPath = ":/icons/github";
       name = "GitHub";
       prName = tr("Pull Request");
    }
@@ -404,18 +399,19 @@ void Controls::createGitPlatformButton(QHBoxLayout *layout)
    {
       add = true;
 
-      gitPlatformIcon = QIcon(":/icons/gitlab");
+      iconPath = ":/icons/gitlab";
       name = "GitLab";
       prName = tr("Merge Request");
    }
 
    if (add)
    {
-      mGitPlatform->setCheckable(true);
-      mGitPlatform->setIcon(gitPlatformIcon);
-      mGitPlatform->setIconSize(QSize(22, 22));
+      mGitPlatform->setText(name);
       mGitPlatform->setToolTip(name);
-      mGitPlatform->setToolButtonStyle(Qt::ToolButtonIconOnly);
+      mGitPlatform->setCheckable(true);
+      mGitPlatform->setIcon(QIcon(iconPath));
+      mGitPlatform->setIconSize(QSize(22, 22));
+      mGitPlatform->setToolButtonStyle(Qt::ToolButtonFollowStyle);
       mGitPlatform->setPopupMode(QToolButton::InstantPopup);
       mBtnGroup->addButton(mGitPlatform, static_cast<int>(ControlsMainViews::GitServer));
 

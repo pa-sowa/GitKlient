@@ -51,7 +51,7 @@ ConfigWidget::ConfigWidget(const QSharedPointer<GitBase> &git, QWidget *parent)
 
    mFeedbackTimer->setInterval(3000);
 
-   mSave->setIcon(QIcon(":/icons/save"));
+   mSave->setIcon(QIcon::fromTheme("document-save", QIcon(":/icons/save")));
    mSave->setToolTip(tr("Save"));
    connect(mSave, &QPushButton::clicked, this, &ConfigWidget::saveFile);
    ui->tabWidget->setCornerWidget(mSave);

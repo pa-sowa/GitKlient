@@ -51,14 +51,15 @@ void BranchesViewDelegate::paint(QPainter *p, const QStyleOptionViewItem &o, con
       {
          const auto width = newOpt.rect.x();
          QRect rectIcon(width - offset, newOpt.rect.y(), iconSize, newOpt.rect.height());
-         QIcon icon(QString::fromUtf8(mIsTag ? ":/icons/tag_indicator" : ":/icons/repo_indicator"));
+         QIcon icon(mIsTag ? QIcon::fromTheme("tag", QIcon(":/icons/tag_indicator"))
+                           : QIcon::fromTheme("vcs-branch", QIcon(":/icons/repo_indicator")));
          icon.paint(p, rectIcon);
       }
       else
       {
          const auto width = newOpt.rect.x();
          QRect rectIcon(width - offset, newOpt.rect.y(), iconSize, newOpt.rect.height());
-         QIcon icon(QString::fromUtf8(":/icons/folder_indicator"));
+         QIcon icon(QIcon::fromTheme("folder-cloud", QIcon(":/icons/folder_indicator")));
          icon.paint(p, rectIcon);
       }
    }

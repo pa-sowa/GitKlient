@@ -50,6 +50,16 @@ QTreeWidgetItem *getChild(QTreeWidgetItem *parent, const QString &childName)
 
    return child;
 }
+
+QIcon restoreIcon()
+{
+   return QIcon::fromTheme("window-maximize", QIcon(":/icons/add"));
+}
+
+QIcon minimizeIcon()
+{
+   return QIcon::fromTheme("window-minimize", QIcon(":/icons/remove"));
+}
 }
 
 BranchesWidget::BranchesWidget(const QSharedPointer<GitCache> &cache, const QSharedPointer<GitBase> &git,
@@ -106,12 +116,12 @@ BranchesWidget::BranchesWidget(const QSharedPointer<GitCache> &cache, const QSha
    /* STASHES START */
    if (const auto visible = settings.localValue("StashesHeader", true).toBool(); !visible)
    {
-      const auto icon = QIcon(!visible ? QString(":/icons/add") : QString(":/icons/remove"));
+      const auto icon = !visible ? restoreIcon() : minimizeIcon();
       mStashesArrow->setPixmap(icon.pixmap(QSize(15, 15)));
       mStashesList->setVisible(visible);
    }
    else
-      mStashesArrow->setPixmap(QIcon(":/icons/remove").pixmap(QSize(15, 15)));
+      mStashesArrow->setPixmap(minimizeIcon().pixmap(QSize(15, 15)));
 
    const auto stashHeaderFrame = new ClickableFrame();
    const auto stashHeaderLayout = new QHBoxLayout(stashHeaderFrame);
@@ -141,12 +151,12 @@ BranchesWidget::BranchesWidget(const QSharedPointer<GitCache> &cache, const QSha
    /* SUBMODULES START */
    if (const auto visible = settings.localValue("SubmodulesHeader", true).toBool(); !visible)
    {
-      const auto icon = QIcon(!visible ? QString(":/icons/add") : QString(":/icons/remove"));
+      const auto icon = !visible ? restoreIcon() : minimizeIcon();
       mSubmodulesArrow->setPixmap(icon.pixmap(QSize(15, 15)));
       mSubmodulesList->setVisible(visible);
    }
    else
-      mSubmodulesArrow->setPixmap(QIcon(":/icons/remove").pixmap(QSize(15, 15)));
+      mSubmodulesArrow->setPixmap(minimizeIcon().pixmap(QSize(15, 15)));
 
    const auto submoduleHeaderFrame = new ClickableFrame();
    const auto submoduleHeaderLayout = new QHBoxLayout(submoduleHeaderFrame);
@@ -179,12 +189,12 @@ BranchesWidget::BranchesWidget(const QSharedPointer<GitCache> &cache, const QSha
    /* SUBTREE START */
    if (const auto visible = settings.localValue("SubtreeHeader", true).toBool(); !visible)
    {
-      const auto icon = QIcon(!visible ? QString(":/icons/add") : QString(":/icons/remove"));
+      const auto icon = !visible ? restoreIcon() : minimizeIcon();
       mSubtreeArrow->setPixmap(icon.pixmap(QSize(15, 15)));
       mSubtreeList->setVisible(visible);
    }
    else
-      mSubtreeArrow->setPixmap(QIcon(":/icons/remove").pixmap(QSize(15, 15)));
+      mSubtreeArrow->setPixmap(minimizeIcon().pixmap(QSize(15, 15)));
 
    const auto subtreeHeaderFrame = new ClickableFrame();
    const auto subtreeHeaderLayout = new QHBoxLayout(subtreeHeaderFrame);
@@ -216,7 +226,7 @@ BranchesWidget::BranchesWidget(const QSharedPointer<GitCache> &cache, const QSha
    searchBranch->setObjectName("SearchInput");
    connect(searchBranch, &QLineEdit::returnPressed, this, &BranchesWidget::onSearchBranch);
 
-   mMinimize->setIcon(QIcon(":/icons/ahead"));
+   mMinimize->setIcon(QIcon::fromTheme("sidebar-collapse-right", QIcon(":/icons/ahead")));
    mMinimize->setToolTip(tr("Show minimalist view"));
    mMinimize->setObjectName("BranchesWidgetOptionsButton");
    connect(mMinimize, &QPushButton::clicked, this, &BranchesWidget::minimalView);
@@ -445,17 +455,17 @@ void BranchesWidget::onPanelsVisibilityChaned()
    GitQlientSettings settings(mGit->getGitDir());
 
    auto visible = settings.localValue("StashesHeader", true).toBool();
-   auto icon = QIcon(!visible ? QString(":/icons/add") : QString(":/icons/remove"));
+   auto icon = !visible ? restoreIcon() : minimizeIcon();
    mStashesArrow->setPixmap(icon.pixmap(QSize(15, 15)));
    mStashesList->setVisible(visible);
 
    visible = settings.localValue("SubmodulesHeader", true).toBool();
-   icon = QIcon(!visible ? QString(":/icons/add") : QString(":/icons/remove"));
+   icon = !visible ? restoreIcon() : minimizeIcon();
    mSubmodulesArrow->setPixmap(icon.pixmap(QSize(15, 15)));
    mSubmodulesList->setVisible(visible);
 
    visible = settings.localValue("SubtreeHeader", true).toBool();
-   icon = QIcon(!visible ? QString(":/icons/add") : QString(":/icons/remove"));
+   icon = !visible ? restoreIcon() : minimizeIcon();
    mSubtreeArrow->setPixmap(icon.pixmap(QSize(15, 15)));
    mSubtreeList->setVisible(visible);
 }
@@ -906,7 +916,7 @@ void BranchesWidget::showSubtreesContextMenu(const QPoint &p)
 void BranchesWidget::onStashesHeaderClicked()
 {
    const auto stashesAreVisible = mStashesList->isVisible();
-   const auto icon = QIcon(stashesAreVisible ? QString(":/icons/add") : QString(":/icons/remove"));
+   const auto icon = stashesAreVisible ? restoreIcon() : minimizeIcon();
    mStashesArrow->setPixmap(icon.pixmap(QSize(15, 15)));
    mStashesList->setVisible(!stashesAreVisible);
 
@@ -919,7 +929,7 @@ void BranchesWidget::onStashesHeaderClicked()
 void BranchesWidget::onSubmodulesHeaderClicked()
 {
    const auto submodulesAreVisible = mSubmodulesList->isVisible();
-   const auto icon = QIcon(submodulesAreVisible ? QString(":/icons/add") : QString(":/icons/remove"));
+   const auto icon = submodulesAreVisible ? restoreIcon() : minimizeIcon();
    mSubmodulesArrow->setPixmap(icon.pixmap(QSize(15, 15)));
    mSubmodulesList->setVisible(!submodulesAreVisible);
 
@@ -932,7 +942,7 @@ void BranchesWidget::onSubmodulesHeaderClicked()
 void BranchesWidget::onSubtreesHeaderClicked()
 {
    const auto subtreesAreVisible = mSubtreeList->isVisible();
-   const auto icon = QIcon(subtreesAreVisible ? QString(":/icons/add") : QString(":/icons/remove"));
+   const auto icon = subtreesAreVisible ? restoreIcon() : minimizeIcon();
    mSubtreeArrow->setPixmap(icon.pixmap(QSize(15, 15)));
    mSubtreeList->setVisible(!subtreesAreVisible);
 

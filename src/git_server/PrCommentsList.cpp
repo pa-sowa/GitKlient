@@ -1,31 +1,31 @@
 #include "PrCommentsList.h"
 
-#include <GitServerCache.h>
+#include <AvatarHelper.h>
+#include <ButtonLink.hpp>
+#include <CircularPixmap.h>
+#include <CodeReviewComment.h>
+#include <Colors.h>
 #include <GitHubRestApi.h>
 #include <GitLabRestApi.h>
-#include <CircularPixmap.h>
-#include <SourceCodeReview.h>
-#include <AvatarHelper.h>
-#include <CodeReviewComment.h>
-#include <ButtonLink.hpp>
-#include <Colors.h>
-#include <previewpage.h>
 #include <GitQlientSettings.h>
+#include <GitServerCache.h>
+#include <SourceCodeReview.h>
+#include <previewpage.h>
 
-#include <QNetworkAccessManager>
-#include <QVBoxLayout>
-#include <QLabel>
-#include <QScrollArea>
 #include <QDir>
 #include <QFile>
-#include <QStandardPaths>
-#include <QNetworkReply>
-#include <QTextEdit>
-#include <QPropertyAnimation>
-#include <QSequentialAnimationGroup>
-#include <QPushButton>
 #include <QIcon>
+#include <QLabel>
+#include <QNetworkAccessManager>
+#include <QNetworkReply>
+#include <QPropertyAnimation>
+#include <QPushButton>
+#include <QScrollArea>
 #include <QScrollBar>
+#include <QSequentialAnimationGroup>
+#include <QStandardPaths>
+#include <QTextEdit>
+#include <QVBoxLayout>
 #include <QWebChannel>
 #include <QWebEngineView>
 
@@ -587,7 +587,7 @@ QVector<QLayout *> PrCommentsList::createBubbleForCodeReview(int reviewId, QVect
             const auto addComment = new QPushButton();
             addComment->setCheckable(true);
             addComment->setChecked(false);
-            addComment->setIcon(QIcon(":/icons/add_comment"));
+            addComment->setIcon(QIcon::fromTheme("add-comment", QIcon(":/icons/add_comment")));
             addComment->setToolTip(tr("Add new comment"));
 
             creationLayout->addWidget(addComment);

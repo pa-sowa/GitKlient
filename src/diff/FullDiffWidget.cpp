@@ -1,17 +1,17 @@
 #include "FullDiffWidget.h"
 
 #include <CommitInfo.h>
-#include <GitHistory.h>
-#include <GitCache.h>
-#include <GitQlientStyles.h>
 #include <DiffHelper.h>
+#include <GitCache.h>
+#include <GitHistory.h>
+#include <GitQlientStyles.h>
 
+#include <QLineEdit>
+#include <QPushButton>
 #include <QScrollBar>
 #include <QTextCharFormat>
 #include <QTextCodec>
 #include <QVBoxLayout>
-#include <QLineEdit>
-#include <QPushButton>
 
 FullDiffWidget::DiffHighlighter::DiffHighlighter(QTextDocument *document)
    : QSyntaxHighlighter(document)
@@ -101,12 +101,12 @@ FullDiffWidget::FullDiffWidget(const QSharedPointer<GitBase> &git, QSharedPointe
    layout->addWidget(search);
    layout->addWidget(mDiffWidget);
 
-   mGoPrevious->setIcon(QIcon(":/icons/arrow_up"));
+   mGoPrevious->setIcon(QIcon::fromTheme("go-up", QIcon(":/icons/arrow_up")));
    mGoPrevious->setToolTip(tr("Previous change"));
    connect(mGoPrevious, &QPushButton::clicked, this, &FullDiffWidget::moveChunkUp);
 
    mGoNext->setToolTip(tr("Next change"));
-   mGoNext->setIcon(QIcon(":/icons/arrow_down"));
+   mGoNext->setIcon(QIcon::fromTheme("go-down", QIcon(":/icons/arrow_down")));
    connect(mGoNext, &QPushButton::clicked, this, &FullDiffWidget::moveChunkDown);
 }
 

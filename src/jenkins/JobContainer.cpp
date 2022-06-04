@@ -1,16 +1,16 @@
 #include "JobContainer.h"
-#include <JenkinsViewInfo.h>
-#include <JobFetcher.h>
-#include <JobButton.h>
 #include <ClickableFrame.h>
 #include <JenkinsJobPanel.h>
+#include <JenkinsViewInfo.h>
+#include <JobButton.h>
 #include <JobDetailsFetcher.h>
+#include <JobFetcher.h>
 
-#include <QVBoxLayout>
-#include <QScrollArea>
-#include <QTreeWidget>
 #include <QLabel>
 #include <QListWidget>
+#include <QScrollArea>
+#include <QTreeWidget>
+#include <QVBoxLayout>
 
 namespace Jenkins
 {
@@ -210,7 +210,8 @@ void JobContainer::createHeader(const QString &name, QListWidget *listWidget)
 void JobContainer::onHeaderClicked(QListWidget *listWidget, QLabel *arrowIcon)
 {
    const auto isVisible = listWidget->isVisible();
-   const auto icon = QIcon(isVisible ? QString(":/icons/arrow_up") : QString(":/icons/arrow_down"));
+   const auto icon = isVisible ? QIcon::fromTheme("go-up", QIcon(":/icons/arrow_up"))
+                               : QIcon::fromTheme("go-down", QIcon(":/icons/arrow_down"));
    arrowIcon->setPixmap(icon.pixmap(QSize(15, 15)));
    listWidget->setVisible(!isVisible);
 }

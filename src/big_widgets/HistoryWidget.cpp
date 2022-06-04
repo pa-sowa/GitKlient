@@ -189,7 +189,7 @@ HistoryWidget::HistoryWidget(const QSharedPointer<GitCache> &cache, const QShare
 
    mFileDiff = new FileDiffWidget(mGit, mCache);
 
-   mReturnFromFull->setIcon(QIcon(":/icons/back"));
+   mReturnFromFull->setIcon(QIcon::fromTheme("go-previous", QIcon(":/icons/back")));
    connect(mReturnFromFull, &QPushButton::clicked, this, &HistoryWidget::returnToView);
    mFullDiffWidget = new FullDiffWidget(mGit, mCache);
 

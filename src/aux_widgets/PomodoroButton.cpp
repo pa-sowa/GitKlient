@@ -1,18 +1,18 @@
 #include "PomodoroButton.h"
 
-#include <GitQlientSettings.h>
 #include <GitBase.h>
+#include <GitQlientSettings.h>
 #include <PomodoroConfigDlg.h>
 
-#include <QTime>
-#include <QToolButton>
 #include <QLabel>
 #include <QMenu>
-#include <QVBoxLayout>
-#include <QMouseEvent>
-#include <QTimer>
 #include <QMessageBox>
+#include <QMouseEvent>
 #include <QStyle>
+#include <QTime>
+#include <QTimer>
+#include <QToolButton>
+#include <QVBoxLayout>
 
 PomodoroButton::PomodoroButton(const QSharedPointer<GitBase> &git, QWidget *parent)
    : QFrame(parent)
@@ -37,7 +37,7 @@ PomodoroButton::PomodoroButton(const QSharedPointer<GitBase> &git, QWidget *pare
    connect(mButton, &QToolButton::clicked, this, &PomodoroButton::onClick);
 
    mArrow->setObjectName("Arrow");
-   mArrow->setIcon(QIcon(":/icons/arrow_down"));
+   mArrow->setIcon(QIcon::fromTheme("go-down", QIcon(":/icons/arrow_down")));
    mArrow->setIconSize(QSize(10, 10));
    mArrow->setToolButtonStyle(Qt::ToolButtonIconOnly);
    mArrow->setToolTip(tr("Options"));

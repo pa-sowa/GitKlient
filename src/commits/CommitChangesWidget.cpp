@@ -103,7 +103,7 @@ void CommitChangesWidget::resetFile(QListWidgetItem *item)
          const auto isInIndex = files.statusCmp(i, RevisionFiles::IN_INDEX);
          const auto untrackedFile = !isInIndex && isUnknown;
          const auto row = ui->stagedFilesList->row(item);
-         const auto iconPath = QString(":/icons/add");
+         const auto icon = QIcon::fromTheme("list-add", QIcon(":/icons/add"));
          const auto fileWidget = qobject_cast<FileWidget *>(ui->stagedFilesList->itemWidget(item));
 
          QFontMetrics metrix(item->font());
@@ -116,7 +116,7 @@ void CommitChangesWidget::resetFile(QListWidgetItem *item)
             ui->stagedFilesList->takeItem(row);
             ui->unstagedFilesList->addItem(item);
 
-            const auto newFileWidget = new FileWidget(iconPath, clippedText, this);
+            const auto newFileWidget = new FileWidget(icon, clippedText, this);
             newFileWidget->setTextColor(fileWidget->getTextColor());
             newFileWidget->setToolTip(fileName);
 
@@ -221,8 +221,9 @@ void CommitChangesWidget::insertFiles(const RevisionFiles &files, QListWidget *f
          if (!mInternalCache.contains(wip))
          {
             const auto color = getColorForFile(files, i);
-            const auto itemPair = fillFileItemInfo(fileName, isConflict, untrackedFile, QString(":/icons/remove"),
-                                                   color, ui->stagedFilesList);
+            const auto itemPair = fillFileItemInfo(fileName, isConflict, untrackedFile,
+                                                   QIcon::fromTheme("list-remove", QIcon(":/icons/remove")), color,
+                                                   ui->stagedFilesList);
             connect(itemPair.second, &FileWidget::clicked, this, [this, item = itemPair.first]() { resetFile(item); });
 
             ui->stagedFilesList->setItemWidget(itemPair.first, itemPair.second);
@@ -245,8 +246,8 @@ void CommitChangesWidget::insertFiles(const RevisionFiles &files, QListWidget *f
             if (!files.statusCmp(i, RevisionFiles::NEW) && color == GitQlientStyles::getGreen())
                color = GitQlientStyles::getTextColor();
 
-            const auto itemPair
-                = fillFileItemInfo(fileName, isConflict, untrackedFile, QString(":/icons/add"), color, fileList);
+            const auto itemPair = fillFileItemInfo(fileName, isConflict, untrackedFile,
+                                                   QIcon::fromTheme("list-add", QIcon(":/icons/add")), color, fileList);
 
             connect(itemPair.second, &FileWidget::clicked, this,
                     [this, item = itemPair.first]() { addFileToCommitList(item); });
@@ -261,7 +262,7 @@ void CommitChangesWidget::insertFiles(const RevisionFiles &files, QListWidget *f
 }
 
 QPair<QListWidgetItem *, FileWidget *> CommitChangesWidget::fillFileItemInfo(const QString &file, bool isConflict,
-                                                                             bool isUntracked, const QString &icon,
+                                                                             bool isUntracked, const QIcon &icon,
                                                                              const QColor &color, QListWidget *parent)
 {
    auto modName = file;
@@ -347,7 +348,8 @@ QString CommitChangesWidget::addFileToCommitList(QListWidgetItem *item, bool upd
       QFontMetrics metrix(item->font());
       const auto clippedText = metrix.elidedText(fileName, Qt::ElideMiddle, width() - 10);
 
-      const auto newFileWidget = new FileWidget(":/icons/remove", clippedText, this);
+      const auto newFileWidget
+          = new FileWidget(QIcon::fromTheme("list-remove", QIcon(":/icons/remove")), clippedText, this);
       newFileWidget->setTextColor(fileWidget->getTextColor());
       newFileWidget->setToolTip(fileName);
 
@@ -398,7 +400,7 @@ void CommitChangesWidget::removeFileFromCommitList(QListWidgetItem *item)
       QFontMetrics metrix(item->font());
       const auto clippedText = metrix.elidedText(fileName, Qt::ElideMiddle, width() - 10);
 
-      const auto newFileWidget = new FileWidget(":/icons/add", clippedText, this);
+      const auto newFileWidget = new FileWidget(QIcon::fromTheme("list-add", QIcon(":/icons/add")), clippedText, this);
       newFileWidget->setTextColor(fileWidget->getTextColor());
       newFileWidget->setToolTip(fileName);
 

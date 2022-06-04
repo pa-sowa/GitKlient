@@ -89,8 +89,7 @@ protected:
 
    virtual void insertFiles(const RevisionFiles &files, QListWidget *fileList) final;
    QPair<QListWidgetItem *, FileWidget *> fillFileItemInfo(const QString &file, bool isConflict, bool isUntracked,
-                                                           const QString &icon, const QColor &color,
-                                                           QListWidget *parent);
+                                                           const QIcon &icon, const QColor &color, QListWidget *parent);
    virtual void prepareCache() final;
    virtual void clearCache() final;
    virtual void addAllFilesToCommitList() final;

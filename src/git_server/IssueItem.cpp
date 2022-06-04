@@ -3,12 +3,13 @@
 #include <ButtonLink.hpp>
 #include <PullRequest.h>
 
+#include <QDesktopServices>
 #include <QDir>
 #include <QFile>
-#include <QUrl>
 #include <QGridLayout>
-#include <QDesktopServices>
+#include <QIcon>
 #include <QLocale>
+#include <QUrl>
 
 using namespace GitServer;
 
@@ -125,15 +126,13 @@ void IssueItem::fillWidget(const Issue &issueData)
       layout->addLayout(labelsLayout);
    }
 
-   QPixmap pic(":/icons/comment");
-   pic = pic.scaled(15, 15, Qt::KeepAspectRatio, Qt::SmoothTransformation);
-
-   const auto icon = new QLabel();
-   icon->setPixmap(pic);
+   QIcon icon = QIcon::fromTheme("comment", QIcon(":/icons/comment"));
+   const auto iconLabel = new QLabel();
+   iconLabel->setPixmap(icon.pixmap(15, 15));
 
    const auto commentsLayout = new QGridLayout();
    commentsLayout->addWidget(mComments, 0, 0);
-   commentsLayout->addWidget(icon, 0, 1);
+   commentsLayout->addWidget(iconLabel, 0, 1);
    commentsLayout->addItem(new QSpacerItem(1, 1, QSizePolicy::Fixed, QSizePolicy::Expanding), 1, 0, 1, 2);
 
    const auto mainLayout = new QHBoxLayout(this);

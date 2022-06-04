@@ -1,6 +1,5 @@
 #include "FileDiffWidget.h"
 
-#include <CheckBox.h>
 #include <CommitInfo.h>
 #include <DiffHelper.h>
 #include <FileDiffView.h>
@@ -13,6 +12,7 @@
 #include <GitQlientSettings.h>
 #include <LineNumberArea.h>
 
+#include <QCheckBox>
 #include <QDateTime>
 #include <QDir>
 #include <QHBoxLayout>
@@ -116,44 +116,44 @@ FileDiffWidget::FileDiffWidget(const QSharedPointer<GitBase> &git, QSharedPointe
    GitQlientSettings settings(mGit->getGitDir());
    mFileVsFile = settings.localValue(GitQlientSettings::SplitFileDiffView, false).toBool();
 
-   mBack->setIcon(QIcon(":/icons/back"));
+   mBack->setIcon(QIcon::fromTheme("go-previous", QIcon(":/icons/back")));
    mBack->setToolTip(tr("Return to the view"));
    connect(mBack, &QPushButton::clicked, this, &FileDiffWidget::exitRequested);
 
-   mGoPrevious->setIcon(QIcon(":/icons/arrow_up"));
+   mGoPrevious->setIcon(QIcon::fromTheme("go-up", QIcon(":/icons/arrow_up")));
    mGoPrevious->setToolTip(tr("Previous change"));
    connect(mGoPrevious, &QPushButton::clicked, this, &FileDiffWidget::moveChunkUp);
 
    mGoNext->setToolTip(tr("Next change"));
-   mGoNext->setIcon(QIcon(":/icons/arrow_down"));
+   mGoNext->setIcon(QIcon::fromTheme("go-down", QIcon(":/icons/arrow_down")));
    connect(mGoNext, &QPushButton::clicked, this, &FileDiffWidget::moveChunkDown);
 
-   mEdition->setIcon(QIcon(":/icons/edit"));
+   mEdition->setIcon(QIcon::fromTheme("document-edit", QIcon(":/icons/edit")));
    mEdition->setCheckable(true);
    mEdition->setToolTip(tr("Edit file"));
    connect(mEdition, &QPushButton::toggled, this, &FileDiffWidget::enterEditionMode);
 
-   mFullView->setIcon(QIcon(":/icons/text-file"));
+   mFullView->setIcon(QIcon::fromTheme("view-pages-single", QIcon(":/icons/text-file")));
    mFullView->setCheckable(true);
    mFullView->setToolTip(tr("Full file view"));
    connect(mFullView, &QPushButton::toggled, this, &FileDiffWidget::setFullViewEnabled);
 
-   mSplitView->setIcon(QIcon(":/icons/split_view"));
+   mSplitView->setIcon(QIcon::fromTheme("view-split-left-right", QIcon(":/icons/split_view")));
    mSplitView->setCheckable(true);
    mSplitView->setToolTip(tr("Split file view"));
    connect(mSplitView, &QPushButton::toggled, this, &FileDiffWidget::setSplitViewEnabled);
 
-   mSave->setIcon(QIcon(":/icons/save"));
+   mSave->setIcon(QIcon::fromTheme("document-save", QIcon(":/icons/save")));
    mSave->setDisabled(true);
    mSave->setToolTip(tr("Save"));
    connect(mSave, &QPushButton::clicked, mFileEditor, &FileEditor::saveFile);
    connect(mSave, &QPushButton::clicked, mEdition, &QPushButton::toggle);
 
-   mStage->setIcon(QIcon(":/icons/staged"));
+   mStage->setIcon(QIcon::fromTheme("list-add", QIcon(":/icons/staged")));
    mStage->setToolTip(tr("Stage file"));
    connect(mStage, &QPushButton::clicked, this, &FileDiffWidget::stageFile);
 
-   mRevert->setIcon(QIcon(":/icons/close"));
+   mRevert->setIcon(QIcon::fromTheme("document-revert", QIcon(":/icons/revert")));
    mRevert->setToolTip(tr("Revert changes"));
    connect(mRevert, &QPushButton::clicked, this, &FileDiffWidget::revertFile);
 

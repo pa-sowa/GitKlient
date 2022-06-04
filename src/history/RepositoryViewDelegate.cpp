@@ -100,9 +100,8 @@ void RepositoryViewDelegate::paint(QPainter *p, const QStyleOptionViewItem &opt,
       {
          static const auto size = 15;
          static const auto offset = 5;
-         QPixmap pic(":/icons/signed");
-         pic = pic.scaled(size, size, Qt::KeepAspectRatio, Qt::SmoothTransformation);
-
+         QIcon icon = QIcon::fromTheme("checkbox", QIcon(":/icons/signed"));
+         QPixmap pic = icon.pixmap(size, size);
          const auto inc = (newOpt.rect.height() - size) / 2;
 
          p->drawPixmap(QRect(newOpt.rect.x(), newOpt.rect.y() + inc, size, size), pic);
