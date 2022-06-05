@@ -18,7 +18,7 @@ unix {
    INSTALLS += application
 
    iconsvg.path = $$PREFIX/share/icons/hicolor/scalable/apps
-   iconsvg.extra = \$(QINSTALL) $$PWD/src/resources/icons/GitQlientLogo.svg \$(INSTALL_ROOT)$${iconsvg.path}/$${TARGET}.svg
+   iconsvg.extra = \$(QINSTALL) $$PWD/src/resources/icons/GitKlientLogo.svg \$(INSTALL_ROOT)$${iconsvg.path}/$${TARGET}.svg
    icon16.path = $$PREFIX/share/icons/hicolor/16x16/apps
    icon16.extra = \$(QINSTALL) $$PWD/src/resources/icons/GitQlientLogo16.png \$(INSTALL_ROOT)$${icon16.path}/$${TARGET}.png
    icon24.path = $$PREFIX/share/icons/hicolor/24x24/apps
@@ -30,7 +30,7 @@ unix {
    icon64.path = $$PREFIX/share/icons/hicolor/64x64/apps
    icon64.extra = \$(QINSTALL) $$PWD/src/resources/icons/GitQlientLogo64.png \$(INSTALL_ROOT)$${icon64.path}/$${TARGET}.png
    icon96.path = $$PREFIX/share/icons/hicolor/96x96/apps
-   icon96.extra = \$(QINSTALL) $$PWD/src/resources/icons/GitQlientLogo96.png \$(INSTALL_ROOT)$${icon96.path}/$${TARGET}.png
+   icon96.extra = \$(QINSTALL) $$PWD/src/resources/icons/GitKlientLogo96.png \$(INSTALL_ROOT)$${icon96.path}/$${TARGET}.png
    icon128.path = $$PREFIX/share/icons/hicolor/128x128/apps
    icon128.extra = \$(QINSTALL) $$PWD/src/resources/icons/GitQlientLogo128.png \$(INSTALL_ROOT)$${icon128.path}/$${TARGET}.png
    icon256.path = $$PREFIX/share/icons/hicolor/256x256/apps

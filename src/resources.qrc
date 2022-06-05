@@ -49,7 +49,7 @@
         <file alias="GitQlientLogoMedium">resources/icons/GitQlientLogoMedium.png</file>
         <file alias="GitQlientLogo">resources/icons/GitQlientLogoLarge.png</file>
         <file alias="GitQlientLogo32">resources/icons/GitQlientLogo32.png</file>
-        <file alias="GitQlientLogoSVG">resources/icons/GitQlientLogo.svg</file>
+        <file alias="GitQlientLogoSVG">resources/icons/GitKlientLogo.svg</file>
         <file alias="GitQlientLogoIco">resources/icons/GitQlientLogo.ico</file>
         <file alias="remove">resources/icons/remove.svg</file>
         <file alias="add">resources/icons/add.svg</file>

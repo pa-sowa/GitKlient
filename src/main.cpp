@@ -21,7 +21,7 @@ int main(int argc, char *argv[])
    QApplication::setOrganizationDomain("francescmm.com");
    QApplication::setApplicationName("GitQlient");
    QApplication::setApplicationVersion(VER);
-   QApplication::setWindowIcon(QIcon(":/icons/GitQlientLogoIco"));
+   QApplication::setWindowIcon(QIcon(":/icons/GitQlientLogoSVG"));
 
    QStringList repos;
    if (GitQlient::parseArguments(app.arguments(), &repos))
