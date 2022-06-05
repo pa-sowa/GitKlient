@@ -406,7 +406,7 @@ void GitQlient::closeTab(int tabIndex)
    if (totalTabs == 0)
    {
       mStackedLayout->setCurrentIndex(0);
-      setWindowTitle(QString("GitQlient %1").arg(VER));
+      setWindowTitle(QString("GitKlient %1").arg(VER));
    }
 }
 
@@ -447,7 +447,7 @@ void GitQlient::updateWindowTitle()
          const auto currentName = repoPath.split("/").last();
          const auto currentBranch = currentTab->currentBranch();
 
-         setWindowTitle(QString("%1 (%2) - GitQlient %3").arg(currentName, currentBranch, VER));
+         setWindowTitle(QString("%1 (%2) - GitKlient %3").arg(currentName, currentBranch, VER));
       }
    }
 }
