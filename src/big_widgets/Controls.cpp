@@ -111,6 +111,8 @@ Controls::Controls(const QSharedPointer<GitCache> &cache, const QSharedPointer<G
    toolBar->addSeparator();
    toolBar->addAction(mPullAction);
    toolBar->addAction(mPushAction);
+   toolBar->addAction(mRefreshAction);
+   toolBar->addSeparator();
    if (mGitPlatformAction)
    {
       toolBar->addAction(mGitPlatformAction);
