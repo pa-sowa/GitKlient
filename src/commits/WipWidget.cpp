@@ -4,6 +4,8 @@
 #include <FileWidget.h>
 #include <GitBase.h>
 #include <GitCache.h>
+#include <GitConfig.h>
+#include <GitHistory.h>
 #include <GitLocal.h>
 #include <GitQlientRole.h>
 #include <GitQlientStyles.h>
@@ -30,30 +32,31 @@ void WipWidget::configure(const QString &sha)
    QScopedPointer<GitWip> git(new GitWip(mGit, mCache));
    git->updateWip();
 
-   const auto files = mCache->revisionFile(CommitInfo::ZERO_SHA, commit.parent(0));
+   const auto files = mCache->revisionFile(CommitInfo::ZERO_SHA, commit.firstParent());
 
    QLog_Info("UI", QString("Configuring WIP widget"));
 
    prepareCache();
 
-   insertFiles(files, ui->unstagedFilesList);
+   if (files)
+      insertFiles(files.value(), ui->unstagedFilesList);
 
    clearCache();
 
    ui->applyActionBtn->setEnabled(ui->stagedFilesList->count());
 }
 
-bool WipWidget::commitChanges()
+void WipWidget::commitChanges()
 {
    QString msg;
    QStringList selFiles = getFiles();
-   auto done = false;
 
    if (!selFiles.isEmpty())
    {
       if (hasConflicts())
          QMessageBox::warning(this, tr("Impossible to commit"),
-                              tr("There are files with conflicts. Please, resolve the conflicts first."));
+                              tr("There are files with conflicts. Please, resolve "
+                                 "the conflicts first."));
       else if (checkMsg(msg))
       {
          const auto revInfo = mCache->commitInfo(CommitInfo::ZERO_SHA);
@@ -61,23 +64,72 @@ bool WipWidget::commitChanges()
          QScopedPointer<GitWip> git(new GitWip(mGit, mCache));
          git->updateWip();
 
-         const auto files = mCache->revisionFile(CommitInfo::ZERO_SHA, revInfo.parent(0));
+         if (const auto files = mCache->revisionFile(CommitInfo::ZERO_SHA, revInfo.firstParent()); files)
+         {
+            const auto lastShaBeforeCommit = mGit->getLastCommit().output.trimmed();
+            QApplication::setOverrideCursor(QCursor(Qt::WaitCursor));
+            QScopedPointer<GitLocal> gitLocal(new GitLocal(mGit));
+            const auto ret = gitLocal->commitFiles(selFiles, files.value(), msg);
+            QApplication::restoreOverrideCursor();
 
-         QApplication::setOverrideCursor(QCursor(Qt::WaitCursor));
-         QScopedPointer<GitLocal> gitLocal(new GitLocal(mGit));
-         const auto ret = gitLocal->commitFiles(selFiles, files, msg);
-         QApplication::restoreOverrideCursor();
+            if (ret.success)
+            {
+               // Adding new commit in the log
+               const auto currentSha = mGit->getLastCommit().output.trimmed();
+               QScopedPointer<GitConfig> gitConfig(new GitConfig(mGit));
+               auto committer = gitConfig->getLocalUserInfo();
 
-         lastMsgBeforeError = (ret.success ? "" : msg);
+               if (committer.mUserEmail.isEmpty() || committer.mUserName.isEmpty())
+                  committer = gitConfig->getGlobalUserInfo();
 
-         emit signalChangesCommitted(ret.success);
+               const auto message = msg.split("\n\n");
 
-         done = true;
+               CommitInfo newCommit { currentSha,
+                                      { lastShaBeforeCommit },
+                                      std::chrono::seconds(QDateTime::currentDateTime().toSecsSinceEpoch()),
+                                      ui->leCommitTitle->text() };
 
-         ui->leCommitTitle->clear();
-         ui->teDescription->clear();
+               newCommit.committer = QString("%1<%2>").arg(committer.mUserName, committer.mUserEmail);
+               newCommit.author = QString("%1<%2>").arg(committer.mUserName, committer.mUserEmail);
+               newCommit.longLog = ui->teDescription->toPlainText();
+
+               mCache->insertCommit(newCommit);
+               mCache->deleteReference(lastShaBeforeCommit, References::Type::LocalBranch, mGit->getCurrentBranch());
+               mCache->insertReference(currentSha, References::Type::LocalBranch, mGit->getCurrentBranch());
+
+               QScopedPointer<GitHistory> gitHistory(new GitHistory(mGit));
+               const auto ret = gitHistory->getDiffFiles(currentSha, lastShaBeforeCommit);
+
+               mCache->insertRevisionFiles(currentSha, lastShaBeforeCommit, RevisionFiles(ret.output));
+
+               prepareCache();
+               clearCache();
+
+               ui->stagedFilesList->clear();
+               ui->stagedFilesList->update();
+
+               ui->leCommitTitle->clear();
+               ui->teDescription->clear();
+
+               git->updateWip();
+
+               emit mCache->signalCacheUpdated();
+               emit changesCommitted();
+            }
+            else
+            {
+               QMessageBox msgBox(QMessageBox::Critical, tr("Error when committing"),
+                                  tr("There were problems during the commit "
+                                     "operation. Please, see the detailed "
+                                     "description for more information."),
+                                  QMessageBox::Ok, this);
+               msgBox.setDetailedText(ret.output);
+               msgBox.setStyleSheet(GitQlientStyles::getStyles());
+               msgBox.exec();
+            }
+
+            lastMsgBeforeError = (ret.success ? "" : msg);
+         }
       }
    }
-
-   return done;
 }

@@ -2,11 +2,11 @@
 
 #include <Colors.h>
 
+#include <QColor>
 #include <QDateTime>
-#include <QString>
 #include <QMap>
 #include <QMetaType>
-#include <QColor>
+#include <QString>
 #include <QVariant>
 #include <QVector>
 

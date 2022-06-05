@@ -1,17 +1,17 @@
 #include "CommitHistoryView.h"
 
-#include <CommitHistoryModel.h>
 #include <CommitHistoryColumns.h>
 #include <CommitHistoryContextMenu.h>
-#include <ShaFilterProxyModel.h>
+#include <CommitHistoryModel.h>
 #include <CommitInfo.h>
+#include <GitBase.h>
 #include <GitCache.h>
 #include <GitConfig.h>
 #include <GitQlientSettings.h>
-#include <GitBase.h>
+#include <ShaFilterProxyModel.h>
 
-#include <QHeaderView>
 #include <QDateTime>
+#include <QHeaderView>
 
 #include <QLogger.h>
 using namespace QLogger;
@@ -182,7 +182,7 @@ void CommitHistoryView::focusOnCommit(const QString &goToSha)
 
    QLog_Info("UI", QString("Setting the focus on the commit {%1}").arg(mCurrentSha));
 
-   auto row = mCache->commitPos(mCurrentSha);
+   auto row = mCache->commitInfo(mCurrentSha).pos;
 
    if (mIsFiltering)
    {
@@ -212,13 +212,15 @@ void CommitHistoryView::showContextMenu(const QPoint &pos)
       if (!shas.isEmpty())
       {
          const auto menu = new CommitHistoryContextMenu(mCache, mGit, mGitServerCache, shas, this);
-         // connect(menu, &CommitHistoryContextMenu::signalRefreshPRsCache, mCache.get(), &GitCache::refreshPRsCache);
-         connect(menu, &CommitHistoryContextMenu::requestReload, this, &CommitHistoryView::requestReload);
+         connect(menu, &CommitHistoryContextMenu::fullReload, this, &CommitHistoryView::fullReload);
+         connect(menu, &CommitHistoryContextMenu::referencesReload, this, &CommitHistoryView::referencesReload);
+         connect(menu, &CommitHistoryContextMenu::logReload, this, &CommitHistoryView::logReload);
          connect(menu, &CommitHistoryContextMenu::signalOpenDiff, this, &CommitHistoryView::signalOpenDiff);
          connect(menu, &CommitHistoryContextMenu::signalOpenCompareDiff, this,
                  &CommitHistoryView::signalOpenCompareDiff);
          connect(menu, &CommitHistoryContextMenu::signalAmendCommit, this, &CommitHistoryView::signalAmendCommit);
          connect(menu, &CommitHistoryContextMenu::signalMergeRequired, this, &CommitHistoryView::signalMergeRequired);
+         connect(menu, &CommitHistoryContextMenu::mergeSqushRequested, this, &CommitHistoryView::mergeSqushRequested);
          connect(menu, &CommitHistoryContextMenu::signalCherryPickConflict, this,
                  &CommitHistoryView::signalCherryPickConflict);
          connect(menu, &CommitHistoryContextMenu::signalPullConflict, this, &CommitHistoryView::signalPullConflict);
@@ -230,19 +232,25 @@ void CommitHistoryView::showContextMenu(const QPoint &pos)
    }
 }
 
-QList<QString> CommitHistoryView::getSelectedShaList() const
+QStringList CommitHistoryView::getSelectedShaList() const
 {
    const auto indexes = selectedIndexes();
-   QMap<QDateTime, QString> shas;
 
-   for (auto index : indexes)
+   if (indexes.count() > 0)
    {
-      const auto sha = mCommitHistoryModel->sha(index.row());
-      const auto dtStr
-          = mCommitHistoryModel->index(index.row(), static_cast<int>(CommitHistoryColumns::Date)).data().toString();
+      QMap<QDateTime, QString> shas;
 
-      shas.insert(QDateTime::fromString(dtStr, "dd MMM yyyy hh:mm"), sha);
+      for (auto index : indexes)
+      {
+         const auto sha = mCommitHistoryModel->sha(index.row());
+         const auto dtStr
+             = mCommitHistoryModel->index(index.row(), static_cast<int>(CommitHistoryColumns::Date)).data().toString();
+
+         shas.insert(QDateTime::fromString(dtStr, "dd MMM yyyy hh:mm"), sha);
+      }
+
+      return shas.values();
    }
 
-   return shas.count() >= 1 ? shas.values() : QList<QString>();
+   return QStringList();
 }

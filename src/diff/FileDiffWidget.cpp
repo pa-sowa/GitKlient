@@ -49,6 +49,13 @@ FileDiffWidget::FileDiffWidget(const QSharedPointer<GitBase> &git, QSharedPointe
    mNewFile->setObjectName("newFile");
    mOldFile->setObjectName("oldFile");
 
+   GitQlientSettings settings(mGit->getGitDir());
+   QFont font = mNewFile->font();
+   const auto points = settings.globalValue("FileDiffView/FontSize", 8).toInt();
+   font.setPointSize(points);
+   mNewFile->setFont(font);
+   mOldFile->setFont(font);
+
    const auto optionsLayout = new QHBoxLayout();
    optionsLayout->setContentsMargins(5, 5, 0, 0);
    optionsLayout->setSpacing(5);
@@ -113,7 +120,6 @@ FileDiffWidget::FileDiffWidget(const QSharedPointer<GitBase> &git, QSharedPointe
    vLayout->addLayout(optionsLayout);
    vLayout->addWidget(mViewStackedWidget);
 
-   GitQlientSettings settings(mGit->getGitDir());
    mFileVsFile = settings.localValue(GitQlientSettings::SplitFileDiffView, false).toBool();
 
    mBack->setIcon(QIcon::fromTheme("go-previous", QIcon(":/icons/back")));
@@ -186,6 +192,26 @@ bool FileDiffWidget::reload()
    return false;
 }
 
+void FileDiffWidget::changeFontSize()
+{
+   GitQlientSettings settings;
+   const auto fontSize = settings.globalValue("FileDiffView/FontSize", 8).toInt();
+
+   auto font = mNewFile->font();
+   font.setPointSize(fontSize);
+
+   auto cursor = mNewFile->textCursor();
+
+   mNewFile->selectAll();
+   mNewFile->setFont(font);
+   mNewFile->setTextCursor(cursor);
+
+   cursor = mOldFile->textCursor();
+   mOldFile->selectAll();
+   mOldFile->setFont(font);
+   mOldFile->setTextCursor(cursor);
+}
+
 bool FileDiffWidget::configure(const QString &currentSha, const QString &previousSha, const QString &file,
                                bool isCached, bool editMode)
 {
@@ -194,18 +220,24 @@ bool FileDiffWidget::configure(const QString &currentSha, const QString &previou
    if (destFile.contains("-->"))
       destFile = destFile.split("--> ").last().split("(").first().trimmed();
 
+   QString text;
    QScopedPointer<GitHistory> git(new GitHistory(mGit));
-   auto text
+
+   if (const auto ret
        = git->getFileDiff(currentSha == CommitInfo::ZERO_SHA ? QString() : currentSha, previousSha, destFile, isCached);
-
-   if (text.isEmpty())
+       ret.success)
    {
-      if (const auto ret = git->getUntrackedFileDiff(destFile); ret.success)
-         text = ret.output.toString();
-   }
+      text = ret.output;
 
-   if (text.startsWith("* "))
-      return false;
+      if (text.isEmpty())
+      {
+         if (const auto ret = git->getUntrackedFileDiff(destFile); ret.success)
+            text = ret.output;
+      }
+
+      if (text.startsWith("* "))
+         return false;
+   }
 
    mFileNameLabel->setText(file);
 
@@ -530,7 +562,7 @@ void FileDiffWidget::stageChunk(const QString &id)
             }
 #endif
             QMessageBox::information(this, tr("Stage failed"),
-                                     tr("The chunk couldn't be applied:\n%1").arg(ret.output.toString()));
+                                     tr("The chunk couldn't be applied:\n%1").arg(ret.output));
          }
       }
    }

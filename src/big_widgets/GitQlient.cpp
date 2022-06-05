@@ -11,6 +11,7 @@
 #include <ProgressDlg.h>
 #include <QPinnableTabWidget.h>
 
+#include <QApplication>
 #include <QCommandLineParser>
 #include <QEvent>
 #include <QFile>
@@ -33,8 +34,13 @@ GitQlient::GitQlient(QWidget *parent)
    , mStackedLayout(new QStackedLayout(this))
    , mRepos(new QPinnableTabWidget())
    , mConfigWidget(new InitScreen())
-
 {
+
+   auto font = QApplication::font();
+   font.setPointSize(10);
+
+   QApplication::setFont(font);
+
    QLog_Info("UI", "*******************************************");
    QLog_Info("UI", "*          GitQlient has started          *");
    QLog_Info("UI", QString("*                  %1                  *").arg(VER));
@@ -241,14 +247,9 @@ bool GitQlient::parseArguments(const QStringList &arguments, QStringList *repos)
 {
    bool ret = true;
    GitQlientSettings settings;
-#ifdef DEBUG
-   auto logLevel = LogLevel::Trace;
-   bool areLogsDisabled = false;
-#else
    auto logLevel
        = static_cast<LogLevel>(settings.globalValue("logsLevel", static_cast<int>(LogLevel::Warning)).toInt());
    bool areLogsDisabled = settings.globalValue("logsDisabled", true).toBool();
-#endif
 
    QCommandLineParser parser;
    parser.setApplicationDescription(tr("Multi-platform Git client written with Qt"));
@@ -286,7 +287,6 @@ bool GitQlient::parseArguments(const QStringList &arguments, QStringList *repos)
       }
 
       QLoggerManager::getInstance()->overwriteLogLevel(logLevel);
-      QLog_Info("UI", QString("Getting arguments {%1}").arg(arguments.join(", ")));
    }
    else
       QLoggerManager::getInstance()->pause();
@@ -336,7 +336,7 @@ void GitQlient::addNewRepoTab(const QString &repoPathArg, bool pinned)
          QSharedPointer<GitBase> git(new GitBase(repoPath));
          QSharedPointer<GitQlientSettings> settings(new GitQlientSettings(git->getGitDir()));
 
-         conditionallyOpenPreConfigDlg(settings);
+         conditionallyOpenPreConfigDlg(git, settings);
 
          const auto repo = new GitQlientRepo(git, settings);
          const auto index = pinned ? mRepos->addPinnedTab(repo, repoName) : mRepos->addTab(repo, repoName);
@@ -426,13 +426,17 @@ void GitQlient::onSuccessOpen(const QString &fullPath)
    mConfigWidget->onRepoOpened();
 }
 
-void GitQlient::conditionallyOpenPreConfigDlg(const QSharedPointer<GitQlientSettings> &settings)
+void GitQlient::conditionallyOpenPreConfigDlg(const QSharedPointer<GitBase> &git,
+                                              const QSharedPointer<GitQlientSettings> &settings)
 {
-   auto maxCommits = settings->localValue("MaxCommits", -1).toInt();
+   QScopedPointer<GitConfig> config(new GitConfig(git));
 
-   if (maxCommits == -1)
+   const auto showDlg = settings->localValue("ShowInitConfigDialog", true).toBool();
+   const auto maxCommits = settings->localValue("MaxCommits", -1).toInt();
+
+   if (maxCommits == -1 || (config->getServerHost().contains("https") && showDlg))
    {
-      const auto preConfig = new InitialRepoConfig(settings, this);
+      const auto preConfig = new InitialRepoConfig(git, settings, this);
       preConfig->exec();
    }
 }

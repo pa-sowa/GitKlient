@@ -1,8 +1,8 @@
 #include "AGitProcess.h"
 
+#include <GitQlientSettings.h>
 #include <QTemporaryFile>
 #include <QTextStream>
-#include <GitQlientSettings.h>
 
 #include <QLogger.h>
 
@@ -10,6 +10,20 @@ using namespace QLogger;
 
 namespace
 {
+QString loginApp()
+{
+   const auto askPassApp = qEnvironmentVariable("SSH_ASKPASS");
+
+   if (!askPassApp.isEmpty())
+      return QString("%1=%2").arg("SSH_ASKPASS", askPassApp);
+
+#if defined(Q_OS_WIN)
+   return QString("SSH_ASKPASS=win-ssh-askpass");
+#else
+   return QString("SSH_ASKPASS=ssh-askpass");
+#endif
+}
+
 void restoreSpaces(QString &newCmd, const QChar &sepChar)
 {
    QChar quoteChar;
@@ -104,6 +118,8 @@ QStringList splitArgList(const QString &cmd)
 AGitProcess::AGitProcess(const QString &workingDir)
    : mWorkingDirectory(workingDir)
 {
+   qRegisterMetaType<GitExecResult>("GitExecResult");
+
    setWorkingDirectory(mWorkingDirectory);
 
    connect(this, &AGitProcess::readyReadStandardOutput, this, &AGitProcess::onReadyStandardOutput,
@@ -144,6 +160,7 @@ bool AGitProcess::execute(const QString &command)
       QStringList env = QProcess::systemEnvironment();
       env << "GIT_TRACE=0"; // avoid choking on debug traces
       env << "GIT_FLUSH=0"; // skip the fflush() in 'git log'
+      env << loginApp();
 
       const auto gitAlternative = GitQlientSettings().globalValue("gitLocation", "").toString();
 
@@ -173,7 +190,7 @@ void AGitProcess::onFinished(int exitCode, QProcess::ExitStatus exitStatus)
 
    mErrorOutput = QString::fromUtf8(errorOutput);
    mRealError = exitStatus != QProcess::NormalExit || mCanceling || errorOutput.contains("error")
-       || errorOutput.toLower().contains("could not read username");
+       || errorOutput.contains("fatal: ") || errorOutput.toLower().contains("could not read username");
 
    if (mRealError)
    {

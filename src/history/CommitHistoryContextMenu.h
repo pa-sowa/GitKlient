@@ -27,7 +27,6 @@
 
 class GitCache;
 class GitBase;
-class GitTags;
 class GitServerCache;
 
 /*!
@@ -41,11 +40,9 @@ class CommitHistoryContextMenu : public QMenu
    Q_OBJECT
 
 signals:
-   /**
-    * @brief requestReload Signal triggered when the user forces a refresh of the repository data.
-    * @param full True if the refresh includes commits and references, otherwise it refreshes only commits.
-    */
-   void requestReload(bool full);
+   void fullReload();
+   void referencesReload();
+   void logReload();
 
    /*!
     \brief Signal triggered when the user wants to open the diff of a commit compared to its parent.
@@ -74,6 +71,16 @@ signals:
     \param destination The branch to merge into.
    */
    void signalMergeRequired(const QString &origin, const QString &destination);
+
+   /**
+    * @brief Signal triggered when a merge with squash behavior has been requested. Since it involves a lot of changes
+    * at UI level this action is not performed here.
+    *
+    * @param origin The branch to merge from.
+    * @param destination The branch to merge into.
+    */
+   void mergeSqushRequested(const QString &origin, const QString &destination);
+
    /*!
     * \brief signalConflict Signal triggered when trying to cherry-pick and a conflict happens.
     */
@@ -109,7 +116,6 @@ private:
    QSharedPointer<GitCache> mCache;
    QSharedPointer<GitBase> mGit;
    QSharedPointer<GitServerCache> mGitServerCache;
-   QSharedPointer<GitTags> mGitTags;
    QStringList mShas;
 
    /*!
@@ -189,15 +195,23 @@ private:
    */
    void resetHard();
    /*!
-    \brief Merges the \p branchForm into the current branch.
+    \brief Merges the \p branchFrom into the current branch.
 
     \param branchFrom The branch that will be merge into the current one.
    */
-   void merge(const QString &branchFrom);
+   void merge();
+
+   /**
+    * @brief mergeSquash Merges the @p branchFrom into the current branch squashing all the commits.
+    * @param branchFrom The branch that will be merge into the current one.
+    */
+   void mergeSquash();
    /*!
     \brief Method that adds all the branch related actions.
 
     \param sha The SHA of the current commit.
    */
    void addBranchActions(const QString &sha);
+
+   void showSquashDialog();
 };

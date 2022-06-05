@@ -1,15 +1,15 @@
 #include "FileBlameWidget.h"
 
+#include <ButtonLink.hpp>
+#include <CommitInfo.h>
 #include <GitCache.h>
 #include <GitHistory.h>
-#include <CommitInfo.h>
-#include <ButtonLink.hpp>
 
 #include <QGridLayout>
 #include <QLabel>
+#include <QMessageBox>
 #include <QScrollArea>
 #include <QtMath>
-#include <QMessageBox>
 
 #include <array>
 
@@ -81,7 +81,7 @@ void FileBlameWidget::setup(const QString &fileName, const QString &currentSha, 
    QScopedPointer<GitHistory> git(new GitHistory(mGit));
    const auto ret = git->blame(mCurrentFile, currentSha);
 
-   if (ret.success && !ret.output.toString().startsWith("fatal:"))
+   if (ret.success && !ret.output.startsWith("fatal:"))
    {
       delete mAnotation;
       mAnotation = nullptr;
@@ -89,7 +89,7 @@ void FileBlameWidget::setup(const QString &fileName, const QString &currentSha, 
       mCurrentSha->setText(currentSha);
       mPreviousSha->setText(previousSha);
 
-      const auto annotations = processBlame(ret.output.toString());
+      const auto annotations = processBlame(ret.output);
       formatAnnotatedFile(annotations);
    }
    else
@@ -140,9 +140,9 @@ QVector<FileBlameWidget::Annotation> FileBlameWidget::processBlame(const QString
       const auto lineText = lineNumAndContent.mid(0, divisorChar);
       const auto content = lineNumAndContent.mid(divisorChar + 1, lineNumAndContent.count() - lineText.count() - 1);
 
-      annotations.append({ revision.sha(), name, dt, lineText.toInt(), content });
+      annotations.append({ revision.sha, name, dt, lineText.toInt(), content });
 
-      if (revision.sha() != CommitInfo::ZERO_SHA)
+      if (revision.sha != CommitInfo::ZERO_SHA)
       {
          const auto dtSinceEpoch = dt.toSecsSinceEpoch();
 
@@ -272,9 +272,9 @@ ButtonLink *FileBlameWidget::createMessageLabel(const QString &sha, bool isFirst
    const auto revision = mCache->commitInfo(sha);
    auto commitMsg = tr("Local changes");
 
-   if (!revision.sha().isEmpty())
+   if (!revision.sha.isEmpty())
    {
-      auto log = revision.shortLog();
+      auto log = revision.shortLog;
 
       if (log.count() > 47)
          log = log.left(47) + QString("...");

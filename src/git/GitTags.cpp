@@ -6,6 +6,16 @@
 
 using namespace QLogger;
 
+namespace
+{
+bool validateSha(const QString &sha)
+{
+   static QRegExp hexMatcher("^[0-9A-F]{40}$", Qt::CaseInsensitive);
+
+   return !sha.isEmpty() && hexMatcher.exactMatch(sha);
+}
+}
+
 GitTags::GitTags(const QSharedPointer<GitBase> &gitBase)
    : mGitBase(gitBase)
 {
@@ -21,7 +31,7 @@ bool GitTags::getRemoteTags() const
 {
    if (!mCache.get())
    {
-      QLog_Fatal("Git", QString("Getting remote tages without cache."));
+      QLog_Fatal("Git", QString("Getting remote tags without cache."));
       assert(mCache.get());
    }
 
@@ -101,7 +111,7 @@ GitExecResult GitTags::getTagCommit(const QString &tagName)
    QLog_Trace("Git", QString("Getting the commit of a tag: {%1}").arg(cmd));
 
    const auto ret = mGitBase->run(cmd);
-   const auto output = ret.output.toString().trimmed();
+   const auto output = ret.output.trimmed();
 
    return qMakePair(ret.success, output);
 }
@@ -112,19 +122,26 @@ void GitTags::onRemoteTagsRecieved(GitExecResult result)
 
    if (result.success)
    {
-      const auto tagsTmp = result.output.toString().split("\n");
+      const auto tagsTmp = result.output.split("\n");
 
       for (const auto &tag : tagsTmp)
       {
-         if (tag != "\n" && !tag.isEmpty() && tag.contains("^{}"))
+         if (tag != "\n" && !tag.isEmpty())
          {
+            const auto isDereferenced = tag.contains("^{}");
             const auto sha = tag.split('\t').constFirst();
             const auto tagName = tag.split('\t').last().remove("refs/tags/").remove("^{}");
 
-            tags.insert(tagName, sha);
+            if (validateSha(sha))
+            {
+               if (isDereferenced)
+                  tags[tagName] = sha;
+               else if (!tags.contains(tagName))
+                  tags[tagName] = sha;
+            }
          }
       }
    }
 
-   mCache->updateTags(tags);
+   mCache->updateTags(std::move(tags));
 }

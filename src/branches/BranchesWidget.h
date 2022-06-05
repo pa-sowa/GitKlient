@@ -37,6 +37,7 @@ class BranchesWidgetMinimal;
 class BranchesViewDelegate;
 class QTreeWidget;
 class QTreeWidgetItem;
+class RefTreeWidget;
 
 /*!
  \brief BranchesWidget is the widget that creates the layout that contains all the widgets related with the display of
@@ -49,23 +50,14 @@ class BranchesWidget : public QFrame
    Q_OBJECT
 
 signals:
+   void fullReload();
+   void logReload();
 
    /**
     * @brief panelsVisibilityChanged Signal triggered whenever the visibility of the panels in the BranchesWidget
     * changes.
     */
    void panelsVisibilityChanged();
-
-   /*!
-    \brief Signal triggered when a branch has been updated and requires a GitQlient UI refresh.
-
-   */
-   void signalBranchesUpdated();
-   /*!
-    \brief Signal triggered when a branch is checked out and requires a GitQlient UI refresh.
-
-   */
-   void signalBranchCheckedOut();
    /*!
     \brief Signal triggered when the user selects a commit via branch or tag selection.
 
@@ -94,6 +86,15 @@ signals:
     * @brief minimalViewStateChanged Signal triggered when the minimal view is active.
     */
    void minimalViewStateChanged(bool isActive);
+
+   /**
+    * @brief Signal triggered when a merge with squash behavior has been requested. Since it involves a lot of changes
+    * at UI level this action is not performed here.
+    *
+    * @param origin The branch to merge from.
+    * @param destination The branch to merge into.
+    */
+   void mergeSqushRequested(const QString &origin, const QString &destination);
 
 public:
    /*!
@@ -158,7 +159,7 @@ private:
    BranchTreeWidget *mRemoteBranchesTree = nullptr;
    BranchesViewDelegate *mRemotesDelegate = nullptr;
    BranchesViewDelegate *mTagsDelegate = nullptr;
-   QTreeWidget *mTagsTree = nullptr;
+   RefTreeWidget *mTagsTree = nullptr;
    QListWidget *mStashesList = nullptr;
    QLabel *mStashesTitleLabel = nullptr;
    QLabel *mStashesArrow = nullptr;
@@ -173,7 +174,7 @@ private:
    BranchesWidgetMinimal *mMinimal = nullptr;
    QString mLastSearch;
    int mLastIndex;
-   BranchTreeWidget *mLastTreeSearched = nullptr;
+   RefTreeWidget *mLastTreeSearched = nullptr;
 
    /**
     * @brief fullView Shows the full branches view.

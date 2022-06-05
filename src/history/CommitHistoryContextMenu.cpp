@@ -7,6 +7,8 @@
 #include <GitBase.h>
 #include <GitBranches.h>
 #include <GitCache.h>
+#include <GitConfig.h>
+#include <GitHistory.h>
 #include <GitHubRestApi.h>
 #include <GitLocal.h>
 #include <GitPatches.h>
@@ -14,9 +16,9 @@
 #include <GitRemote.h>
 #include <GitServerCache.h>
 #include <GitStashes.h>
-#include <GitTags.h>
 #include <MergePullRequestDlg.h>
 #include <PullDlg.h>
+#include <SquashDlg.h>
 #include <TagDlg.h>
 
 #include <QApplication>
@@ -38,7 +40,6 @@ CommitHistoryContextMenu::CommitHistoryContextMenu(const QSharedPointer<GitCache
    , mCache(cache)
    , mGit(git)
    , mGitServerCache(gitServerCache)
-   , mGitTags(new GitTags(mGit, mCache))
    , mShas(shas)
 {
    setAttribute(Qt::WA_DeleteOnClose);
@@ -91,11 +92,10 @@ void CommitHistoryContextMenu::createIndividualShaMenu()
          addBranchActions(sha);
 
          QScopedPointer<GitBranches> git(new GitBranches(mGit));
-         const auto ret = git->getLastCommitOfBranch(mGit->getCurrentBranch());
 
-         if (ret.success)
+         if (auto ret = git->getLastCommitOfBranch(mGit->getCurrentBranch()); ret.success)
          {
-            const auto lastShaStr = ret.output.toString().remove('\n');
+            const auto lastShaStr = ret.output.trimmed();
 
             if (lastShaStr == sha)
             {
@@ -148,7 +148,7 @@ void CommitHistoryContextMenu::createIndividualShaMenu()
 
          const auto copyTitleAction = copyMenu->addAction(tr("Commit title"));
          connect(copyTitleAction, &QAction::triggered, this, [this]() {
-            const auto title = mCache->commitInfo(mShas.first()).shortLog();
+            const auto title = mCache->commitInfo(mShas.first()).shortLog;
             QApplication::clipboard()->setText(title);
          });
       }
@@ -181,7 +181,7 @@ void CommitHistoryContextMenu::createIndividualShaMenu()
             connect(gitServerMenu->addAction(tr("Merge PR")), &QAction::triggered, this, [this, pr]() {
                const auto mergeDlg = new MergePullRequestDlg(mGit, pr, mShas.first(), this);
                connect(mergeDlg, &MergePullRequestDlg::signalRepositoryUpdated, this,
-                       [this]() { emit requestReload(true); });
+                       &CommitHistoryContextMenu::fullReload);
 
                mergeDlg->exec();
             });
@@ -212,12 +212,21 @@ void CommitHistoryContextMenu::createMultipleShasMenu()
       connect(copyShaAction, &QAction::triggered, this,
               [this]() { QApplication::clipboard()->setText(mShas.join(',')); });
 
-      for (const auto &sha : qAsConst(mShas))
-         if (mCache->isCommitInCurrentGeneologyTree(sha))
-            return;
+      auto shasInCurrenTree = 0;
 
-      const auto cherryPickAction = addAction(tr("Cherry pick ALL commits"));
-      connect(cherryPickAction, &QAction::triggered, this, &CommitHistoryContextMenu::cherryPickCommit);
+      for (const auto &sha : qAsConst(mShas))
+         shasInCurrenTree += mCache->isCommitInCurrentGeneologyTree(sha);
+
+      if (shasInCurrenTree == 0)
+      {
+         const auto cherryPickAction = addAction(tr("Cherry pick ALL commits"));
+         connect(cherryPickAction, &QAction::triggered, this, &CommitHistoryContextMenu::cherryPickCommit);
+      }
+      else if (shasInCurrenTree == mShas.count())
+      {
+         const auto cherryPickAction = addAction(tr("Squash commits"));
+         connect(cherryPickAction, &QAction::triggered, this, &CommitHistoryContextMenu::showSquashDialog);
+      }
    }
    else
       QLog_Warning("UI", "WIP selected as part of a series of SHAs");
@@ -229,7 +238,7 @@ void CommitHistoryContextMenu::stashPush()
    const auto ret = git->stash();
 
    if (ret.success)
-      emit requestReload(false);
+      emit logReload();
 }
 
 void CommitHistoryContextMenu::stashPop()
@@ -238,16 +247,13 @@ void CommitHistoryContextMenu::stashPop()
    const auto ret = git->pop();
 
    if (ret.success)
-      emit requestReload(false);
+      emit logReload();
 }
 
 void CommitHistoryContextMenu::createBranch()
 {
-   BranchDlg dlg({ mShas.first(), BranchDlgMode::CREATE_FROM_COMMIT, mGit });
-   const auto ret = dlg.exec();
-
-   if (ret == QDialog::Accepted)
-      emit requestReload(true); // TODO: Optimize
+   BranchDlg dlg({ mShas.first(), BranchDlgMode::CREATE_FROM_COMMIT, mCache, mGit });
+   dlg.exec();
 }
 
 void CommitHistoryContextMenu::createTag()
@@ -256,7 +262,7 @@ void CommitHistoryContextMenu::createTag()
    const auto ret = dlg.exec();
 
    if (ret == QDialog::Accepted)
-      emit requestReload(true); // TODO: Optimize
+      emit referencesReload(); // TODO: Optimize
 }
 
 void CommitHistoryContextMenu::exportAsPatch()
@@ -266,14 +272,13 @@ void CommitHistoryContextMenu::exportAsPatch()
 
    if (ret.success)
    {
-      const auto action = QMessageBox::information(
-          this, tr("Patch generated"),
-          tr("<p>The patch has been generated!</p>"
-             "<p><b>Commit:</b></p><p>%1</p>"
-             "<p><b>Destination:</b> %2</p>"
-             "<p><b>File names:</b></p><p>%3</p>")
-              .arg(mShas.join("<br>"), mGit->getWorkingDir(), ret.output.toStringList().join("<br>")),
-          QMessageBox::Ok, QMessageBox::Open);
+      const auto action = QMessageBox::information(this, tr("Patch generated"),
+                                                   tr("<p>The patch has been generated!</p>"
+                                                      "<p><b>Commit:</b></p><p>%1</p>"
+                                                      "<p><b>Destination:</b> %2</p>"
+                                                      "<p><b>File names:</b></p><p>%3</p>")
+                                                       .arg(mShas.join("<br>"), mGit->getWorkingDir(), ret.output),
+                                                   QMessageBox::Ok, QMessageBox::Open);
 
       if (action == QMessageBox::Open)
       {
@@ -301,12 +306,12 @@ void CommitHistoryContextMenu::checkoutBranch()
 
    QScopedPointer<GitBranches> git(new GitBranches(mGit));
    const auto ret = isLocal ? git->checkoutLocalBranch(branchName) : git->checkoutRemoteBranch(branchName);
-   const auto output = ret.output.toString();
+   const auto output = ret.output;
 
    if (ret.success)
    {
       QRegExp rx("by \\d+ commits");
-      rx.indexIn(ret.output.toString());
+      rx.indexIn(ret.output);
       auto value = rx.capturedTexts().constFirst().split(" ");
 
       if (value.count() == 3 && output.contains("your branch is behind", Qt::CaseInsensitive))
@@ -315,12 +320,11 @@ void CommitHistoryContextMenu::checkoutBranch()
          (void)commits;
 
          PullDlg pull(mGit, output.split('\n').first());
-
-         connect(&pull, &PullDlg::signalRepositoryUpdated, this, [this]() { emit requestReload(true); });
+         connect(&pull, &PullDlg::signalRepositoryUpdated, this, &CommitHistoryContextMenu::fullReload);
          connect(&pull, &PullDlg::signalPullConflict, this, &CommitHistoryContextMenu::signalPullConflict);
       }
 
-      emit requestReload(!isLocal);
+      emit logReload();
    }
    else
    {
@@ -328,7 +332,7 @@ void CommitHistoryContextMenu::checkoutBranch()
                          tr("There were problems during the checkout operation. Please, see the detailed "
                             "description for more information."),
                          QMessageBox::Ok, this);
-      msgBox.setDetailedText(ret.output.toString());
+      msgBox.setDetailedText(ret.output);
       msgBox.setStyleSheet(GitQlientStyles::getStyles());
       msgBox.exec();
    }
@@ -336,11 +340,10 @@ void CommitHistoryContextMenu::checkoutBranch()
 
 void CommitHistoryContextMenu::createCheckoutBranch()
 {
-   BranchDlg dlg({ mShas.constFirst(), BranchDlgMode::CREATE_CHECKOUT_FROM_COMMIT, mGit });
-   const auto ret = dlg.exec();
+   BranchDlg dlg({ mShas.constFirst(), BranchDlgMode::CREATE_CHECKOUT_FROM_COMMIT, mCache, mGit });
 
-   if (ret == QDialog::Accepted)
-      emit requestReload(true); // TODO: Optimize
+   if (dlg.exec() == QDialog::Accepted)
+      emit logReload();
 }
 
 void CommitHistoryContextMenu::checkoutCommit()
@@ -352,14 +355,14 @@ void CommitHistoryContextMenu::checkoutCommit()
    const auto ret = git->checkoutCommit(sha);
 
    if (ret.success)
-      emit requestReload(false);
+      emit logReload();
    else
    {
       QMessageBox msgBox(QMessageBox::Critical, tr("Error while checking out"),
                          tr("There were problems during the checkout operation. Please, see the detailed "
                             "description for more information."),
                          QMessageBox::Ok, this);
-      msgBox.setDetailedText(ret.output.toString());
+      msgBox.setDetailedText(ret.output);
       msgBox.setStyleSheet(GitQlientStyles::getStyles());
       msgBox.exec();
    }
@@ -370,16 +373,32 @@ void CommitHistoryContextMenu::cherryPickCommit()
    auto shas = mShas;
    for (const auto &sha : qAsConst(mShas))
    {
+      const auto lastShaBeforeCommit = mGit->getLastCommit().output.trimmed();
       QScopedPointer<GitLocal> git(new GitLocal(mGit));
       const auto ret = git->cherryPickCommit(sha);
 
       shas.takeFirst();
 
       if (ret.success && shas.isEmpty())
-         emit requestReload(false);
+      {
+         auto commit = mCache->commitInfo(sha);
+         commit.sha = mGit->getLastCommit().output.trimmed();
+
+         mCache->insertCommit(commit);
+         mCache->deleteReference(lastShaBeforeCommit, References::Type::LocalBranch, mGit->getCurrentBranch());
+         mCache->insertReference(commit.sha, References::Type::LocalBranch, mGit->getCurrentBranch());
+
+         QScopedPointer<GitHistory> gitHistory(new GitHistory(mGit));
+         const auto ret = gitHistory->getDiffFiles(commit.sha, lastShaBeforeCommit);
+
+         mCache->insertRevisionFiles(commit.sha, lastShaBeforeCommit, RevisionFiles(ret.output));
+
+         emit mCache->signalCacheUpdated();
+         emit logReload();
+      }
       else if (!ret.success)
       {
-         const auto errorMsg = ret.output.toString();
+         const auto errorMsg = ret.output;
 
          if (errorMsg.contains("error: could not apply", Qt::CaseInsensitive)
              && errorMsg.contains("after resolving the conflicts", Qt::CaseInsensitive))
@@ -406,7 +425,7 @@ void CommitHistoryContextMenu::applyPatch()
    QScopedPointer<GitPatches> git(new GitPatches(mGit));
 
    if (!fileName.isEmpty() && git->applyPatch(fileName))
-      emit requestReload(false);
+      emit logReload();
 }
 
 void CommitHistoryContextMenu::applyCommit()
@@ -415,7 +434,7 @@ void CommitHistoryContextMenu::applyCommit()
    QScopedPointer<GitPatches> git(new GitPatches(mGit));
 
    if (!fileName.isEmpty() && git->applyPatch(fileName, true))
-      emit requestReload(false);
+      emit logReload();
 }
 
 void CommitHistoryContextMenu::push()
@@ -425,22 +444,33 @@ void CommitHistoryContextMenu::push()
    const auto ret = git->pushCommit(mShas.first(), mGit->getCurrentBranch());
    QApplication::restoreOverrideCursor();
 
-   if (ret.output.toString().contains("has no upstream branch"))
+   if (ret.output.contains("has no upstream branch"))
    {
       const auto currentBranch = mGit->getCurrentBranch();
-      BranchDlg dlg({ currentBranch, BranchDlgMode::PUSH_UPSTREAM, mGit });
+      BranchDlg dlg({ currentBranch, BranchDlgMode::PUSH_UPSTREAM, mCache, mGit });
       const auto ret = dlg.exec();
 
       if (ret == QDialog::Accepted)
-      {
          emit signalRefreshPRsCache();
-         emit requestReload(false);
-      }
    }
    else if (ret.success)
    {
-      emit signalRefreshPRsCache();
-      emit requestReload(false);
+      const auto currentBranch = mGit->getCurrentBranch();
+      QScopedPointer<GitConfig> git(new GitConfig(mGit));
+      const auto remote = git->getRemoteForBranch(currentBranch);
+
+      if (remote.success)
+      {
+         const auto oldSha = mCache->getShaOfReference(QString("%1/%2").arg(remote.output, currentBranch),
+                                                       References::Type::RemoteBranches);
+         const auto sha = mCache->getShaOfReference(currentBranch, References::Type::LocalBranch);
+         mCache->deleteReference(oldSha, References::Type::RemoteBranches,
+                                 QString("%1/%2").arg(remote.output, currentBranch));
+         mCache->insertReference(sha, References::Type::RemoteBranches,
+                                 QString("%1/%2").arg(remote.output, currentBranch));
+         emit mCache->signalCacheUpdated();
+         emit signalRefreshPRsCache();
+      }
    }
    else
    {
@@ -448,7 +478,7 @@ void CommitHistoryContextMenu::push()
                          tr("There were problems during the push operation. Please, see the detailed description "
                             "for more information."),
                          QMessageBox::Ok, this);
-      msgBox.setDetailedText(ret.output.toString());
+      msgBox.setDetailedText(ret.output);
       msgBox.setStyleSheet(GitQlientStyles::getStyles());
       msgBox.exec();
    }
@@ -462,10 +492,10 @@ void CommitHistoryContextMenu::pull()
    QApplication::restoreOverrideCursor();
 
    if (ret.success)
-      emit requestReload(true);
+      emit fullReload();
    else
    {
-      const auto errorMsg = ret.output.toString();
+      const auto errorMsg = ret.output;
 
       if (errorMsg.contains("error: could not apply", Qt::CaseInsensitive)
           && errorMsg.contains("causing a conflict", Qt::CaseInsensitive))
@@ -490,26 +520,35 @@ void CommitHistoryContextMenu::fetch()
    QScopedPointer<GitRemote> git(new GitRemote(mGit));
 
    if (git->fetch())
-   {
-      mGitTags->getRemoteTags();
-      emit requestReload(true);
-   }
+      emit fullReload();
 }
 
 void CommitHistoryContextMenu::resetSoft()
 {
    QScopedPointer<GitLocal> git(new GitLocal(mGit));
+   const auto previousSha = mGit->getLastCommit().output.trimmed();
 
    if (git->resetCommit(mShas.first(), GitLocal::CommitResetType::SOFT))
-      emit requestReload(false);
+   {
+      mCache->deleteReference(previousSha, References::Type::LocalBranch, mGit->getCurrentBranch());
+      mCache->insertReference(mShas.first(), References::Type::LocalBranch, mGit->getCurrentBranch());
+
+      emit logReload();
+   }
 }
 
 void CommitHistoryContextMenu::resetMixed()
 {
    QScopedPointer<GitLocal> git(new GitLocal(mGit));
+   const auto previousSha = mGit->getLastCommit().output.trimmed();
 
    if (git->resetCommit(mShas.first(), GitLocal::CommitResetType::MIXED))
-      emit requestReload(false);
+   {
+      mCache->deleteReference(previousSha, References::Type::LocalBranch, mGit->getCurrentBranch());
+      mCache->insertReference(mShas.first(), References::Type::LocalBranch, mGit->getCurrentBranch());
+
+      emit logReload();
+   }
 }
 
 void CommitHistoryContextMenu::resetHard()
@@ -520,19 +559,39 @@ void CommitHistoryContextMenu::resetHard()
 
    if (retMsg == QMessageBox::Ok)
    {
+      const auto previousSha = mGit->getLastCommit().output.trimmed();
       QScopedPointer<GitLocal> git(new GitLocal(mGit));
 
       if (git->resetCommit(mShas.first(), GitLocal::CommitResetType::HARD))
-         emit requestReload(false);
+      {
+         mCache->deleteReference(previousSha, References::Type::LocalBranch, mGit->getCurrentBranch());
+         mCache->insertReference(mShas.first(), References::Type::LocalBranch, mGit->getCurrentBranch());
+
+         emit logReload();
+      }
    }
 }
 
-void CommitHistoryContextMenu::merge(const QString &branchFrom)
+void CommitHistoryContextMenu::merge()
 {
+   const auto action = qobject_cast<QAction *>(sender());
+   const auto fromBranch = action->data().toString();
+
    QScopedPointer<GitRemote> git(new GitRemote(mGit));
    const auto currentBranch = mGit->getCurrentBranch();
 
-   emit signalMergeRequired(currentBranch, branchFrom);
+   emit signalMergeRequired(currentBranch, fromBranch);
+}
+
+void CommitHistoryContextMenu::mergeSquash()
+{
+   const auto action = qobject_cast<QAction *>(sender());
+   const auto fromBranch = action->data().toString();
+
+   QScopedPointer<GitRemote> git(new GitRemote(mGit));
+   const auto currentBranch = mGit->getCurrentBranch();
+
+   emit mergeSqushRequested(currentBranch, fromBranch);
 }
 
 void CommitHistoryContextMenu::addBranchActions(const QString &sha)
@@ -601,7 +660,12 @@ void CommitHistoryContextMenu::addBranchActions(const QString &sha)
          {
             // If is the last commit of a branch
             const auto mergeBranchAction = addAction(QString(tr("Merge %1")).arg(pair.first));
-            connect(mergeBranchAction, &QAction::triggered, this, [this, pair]() { merge(pair.first); });
+            mergeBranchAction->setData(pair.first);
+            connect(mergeBranchAction, &QAction::triggered, this, &CommitHistoryContextMenu::merge);
+
+            const auto mergeSquashBranchAction = addAction(QString(tr("Squash-merge %1")).arg(pair.first));
+            mergeSquashBranchAction->setData(pair.first);
+            connect(mergeSquashBranchAction, &QAction::triggered, this, &CommitHistoryContextMenu::mergeSquash);
          }
       }
 
@@ -612,4 +676,19 @@ void CommitHistoryContextMenu::addBranchActions(const QString &sha)
    }
    else
       addSeparator();
+}
+
+void CommitHistoryContextMenu::showSquashDialog()
+{
+   if (mCache->pendingLocalChanges())
+   {
+      QMessageBox::warning(this, tr("Squash not possible"),
+                           tr("Please, make sure there are no pending changes to be committed."));
+   }
+   else
+   {
+      const auto squash = new SquashDlg(mGit, mCache, mShas, this);
+      connect(squash, &SquashDlg::changesCommitted, this, &CommitHistoryContextMenu::fullReload);
+      squash->exec();
+   }
 }

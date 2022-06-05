@@ -49,6 +49,9 @@ GitExecResult GitBranches::checkoutBranchFromCommit(const QString &commitSha, co
 
    const auto ret = mGitBase->run(cmd);
 
+   if (ret.success)
+      mGitBase->updateCurrentBranch();
+
    return ret;
 }
 
@@ -81,14 +84,14 @@ GitExecResult GitBranches::checkoutRemoteBranch(const QString &branchName)
    QLog_Trace("Git", QString("Checking out remote branch: {%1}").arg(cmd));
 
    auto ret = mGitBase->run(cmd);
-   const auto output = ret.output.toString();
+   const auto output = ret.output;
 
    if (ret.success && !output.contains("fatal:"))
       mGitBase->updateCurrentBranch();
    else if (output.contains("already exists"))
    {
       QRegExp rx("\'\\w+\'");
-      rx.indexIn(ret.output.toString());
+      rx.indexIn(ret.output);
       auto value = rx.capturedTexts().constFirst();
       value.remove("'");
 
@@ -157,8 +160,7 @@ GitExecResult GitBranches::removeRemoteBranch(const QString &branchName)
 
    auto ret = gitConfig->getRemoteForBranch(branch);
 
-   const auto cmd
-       = QString("git push --delete %2 %1").arg(branch, ret.success ? ret.output.toString() : QString("origin"));
+   const auto cmd = QString("git push --delete %2 %1").arg(branch, ret.success ? ret.output : QString("origin"));
 
    QLog_Trace("Git", QString("Removing a remote branch: {%1}").arg(cmd));
 
@@ -178,7 +180,7 @@ GitExecResult GitBranches::getLastCommitOfBranch(const QString &branch)
    auto ret = mGitBase->run(cmd);
 
    if (ret.success)
-      ret.output = ret.output.toString().trimmed();
+      ret.output = ret.output.trimmed();
 
    return ret;
 }
@@ -194,4 +196,13 @@ GitExecResult GitBranches::pushUpstream(const QString &branchName)
    const auto ret = mGitBase->run(cmd);
 
    return ret;
+}
+
+GitExecResult GitBranches::rebaseOnto(const QString &currentBranch, const QString &startBranch,
+                                      const QString &fromBranch) const
+{
+   QLog_Debug("Git", QString("Git rebase {%1} into {%2}").arg(currentBranch, fromBranch));
+
+   const auto cmd = QString("git rebase --onto %1 %2 %3").arg(currentBranch, startBranch, fromBranch);
+   return mGitBase->run(cmd);
 }

@@ -238,20 +238,20 @@ QMessageBox
 
 QScrollBar:vertical
 {
-    border-left-color: #202122;
     background-color: transparent;
+    border-top-color: #606162;
 }
 
 QScrollBar:horizontal
 {
-    border-top-color: #202122;
+    border-top-color: transparent;
     background-color: transparent;
 }
 
 QScrollBar::handle:vertical, QScrollBar::handle:horizontal
 {
     border-color: #202122;
-    background-color: #2E2F30;
+    background-color: #202122;
 }
 
 QScrollBar::handle:vertical:hover, QScrollBar::handle:horizontal:hover
@@ -261,17 +261,17 @@ QScrollBar::handle:vertical:hover, QScrollBar::handle:horizontal:hover
 
 QScrollBar::handle:vertical:pressed, QScrollBar::handle:horizontal:pressed
 {
-    background-color: #303132;
+    background-color: #505152;
 }
 
 QScrollBar::add-page, QScrollBar::sub-page
 {
-    background-color: #606162;
+    background-color: #2E2F30;
 }
 
 QProgressDialog
 {
-    background-color: #404142;
+    background-color: #2E2F30;
     color: white;
 }
 
@@ -286,6 +286,11 @@ QProgressBar::chunk
     background-color: #D89000;
 }
 
+QSplitter::handle
+{
+   background: #404142;
+}
+
 /*********************************************/
 /*                QWidgets END               */
 /*********************************************/
@@ -295,7 +300,7 @@ QProgressBar::chunk
 /*            Custom Widgets START           */
 /*********************************************/
 
-CheckBox
+CheckBox, QRadioButton
 {
    color: white
 }
@@ -688,6 +693,11 @@ BranchDlg
 #BranchesWidgetOptionsButton:hover
 {
     background: #606162;
+}
+
+RefTreeWidget QHeaderView::section:last
+{
+   border-color: #606162;
 }
 
 /*********************************************/

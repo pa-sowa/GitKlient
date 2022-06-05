@@ -51,6 +51,13 @@ QTreeWidgetItem *getChild(QTreeWidgetItem *parent, const QString &childName)
    return child;
 }
 
+struct RemoteBranch
+{
+   QString remote;
+   QString branch;
+   QString sha;
+};
+
 QIcon restoreIcon()
 {
    return QIcon::fromTheme("window-maximize", QIcon(":/icons/add"));
@@ -60,6 +67,7 @@ QIcon minimizeIcon()
 {
    return QIcon::fromTheme("window-minimize", QIcon(":/icons/remove"));
 }
+
 }
 
 BranchesWidget::BranchesWidget(const QSharedPointer<GitCache> &cache, const QSharedPointer<GitBase> &git,
@@ -68,9 +76,9 @@ BranchesWidget::BranchesWidget(const QSharedPointer<GitCache> &cache, const QSha
    , mCache(cache)
    , mGit(git)
    , mGitTags(new GitTags(mGit, mCache))
-   , mLocalBranchesTree(new BranchTreeWidget(mGit))
-   , mRemoteBranchesTree(new BranchTreeWidget(mGit))
-   , mTagsTree(new QTreeWidget())
+   , mLocalBranchesTree(new BranchTreeWidget(mCache, mGit))
+   , mRemoteBranchesTree(new BranchTreeWidget(mCache, mGit))
+   , mTagsTree(new RefTreeWidget())
    , mStashesList(new QListWidget())
    , mStashesTitleLabel(new QLabel(tr("Stashes (0)")))
    , mStashesArrow(new QLabel())
@@ -83,6 +91,7 @@ BranchesWidget::BranchesWidget(const QSharedPointer<GitCache> &cache, const QSha
    , mMinimize(new QPushButton())
    , mMinimal(new BranchesWidgetMinimal(mCache, mGit))
 {
+   connect(mCache.get(), &GitCache::signalCacheUpdated, this, &BranchesWidget::showBranches);
    connect(mCache.get(), &GitCache::signalCacheUpdated, this, &BranchesWidget::processTags);
 
    setAttribute(Qt::WA_DeleteOnClose);
@@ -216,7 +225,7 @@ BranchesWidget::BranchesWidget(const QSharedPointer<GitCache> &cache, const QSha
    /* SUBTREE END */
 
    const auto searchBranch = new QLineEdit();
-   searchBranch->setPlaceholderText(tr("Prese ENTER to search a branch..."));
+   searchBranch->setPlaceholderText(tr("Prese ENTER to search a branch or tag..."));
    searchBranch->setObjectName("SearchInput");
    connect(searchBranch, &QLineEdit::returnPressed, this, &BranchesWidget::onSearchBranch);
 
@@ -289,20 +298,19 @@ BranchesWidget::BranchesWidget(const QSharedPointer<GitCache> &cache, const QSha
    connect(mLocalBranchesTree, &BranchTreeWidget::signalSelectCommit, this, &BranchesWidget::signalSelectCommit);
    connect(mLocalBranchesTree, &BranchTreeWidget::signalSelectCommit, mRemoteBranchesTree,
            &BranchTreeWidget::clearSelection);
-   connect(mLocalBranchesTree, &BranchTreeWidget::signalFetchPerformed, mGitTags.data(), &GitTags::getRemoteTags);
-   connect(mLocalBranchesTree, &BranchTreeWidget::signalBranchesUpdated, this, &BranchesWidget::signalBranchesUpdated);
-   connect(mLocalBranchesTree, &BranchTreeWidget::signalBranchCheckedOut, this,
-           &BranchesWidget::signalBranchCheckedOut);
+   connect(mLocalBranchesTree, &BranchTreeWidget::fullReload, this, &BranchesWidget::fullReload);
+   connect(mLocalBranchesTree, &BranchTreeWidget::logReload, this, &BranchesWidget::logReload);
    connect(mLocalBranchesTree, &BranchTreeWidget::signalMergeRequired, this, &BranchesWidget::signalMergeRequired);
+   connect(mLocalBranchesTree, &BranchTreeWidget::mergeSqushRequested, this, &BranchesWidget::mergeSqushRequested);
    connect(mLocalBranchesTree, &BranchTreeWidget::signalPullConflict, this, &BranchesWidget::signalPullConflict);
+
    connect(mRemoteBranchesTree, &BranchTreeWidget::signalSelectCommit, this, &BranchesWidget::signalSelectCommit);
    connect(mRemoteBranchesTree, &BranchTreeWidget::signalSelectCommit, mLocalBranchesTree,
            &BranchTreeWidget::clearSelection);
-   connect(mRemoteBranchesTree, &BranchTreeWidget::signalFetchPerformed, mGitTags.data(), &GitTags::getRemoteTags);
-   connect(mRemoteBranchesTree, &BranchTreeWidget::signalBranchesUpdated, this, &BranchesWidget::signalBranchesUpdated);
-   connect(mRemoteBranchesTree, &BranchTreeWidget::signalBranchCheckedOut, this,
-           &BranchesWidget::signalBranchCheckedOut);
+   connect(mRemoteBranchesTree, &BranchTreeWidget::fullReload, this, &BranchesWidget::fullReload);
+   connect(mRemoteBranchesTree, &BranchTreeWidget::logReload, this, &BranchesWidget::logReload);
    connect(mRemoteBranchesTree, &BranchTreeWidget::signalMergeRequired, this, &BranchesWidget::signalMergeRequired);
+   connect(mRemoteBranchesTree, &BranchTreeWidget::mergeSqushRequested, this, &BranchesWidget::mergeSqushRequested);
 
    connect(mTagsTree, &QTreeWidget::itemClicked, this, &BranchesWidget::onTagClicked);
    connect(mTagsTree, &QListWidget::customContextMenuRequested, this, &BranchesWidget::showTagsContextMenu);
@@ -338,45 +346,102 @@ void BranchesWidget::showBranches()
    QApplication::setOverrideCursor(QCursor(Qt::WaitCursor));
 
    auto branches = mCache->getBranches(References::Type::LocalBranch);
+   std::map<QString, QString> branchShaMap;
+   std::map<QString, QString> branchFolderShaMap;
+
+   for (const auto &pair : qAsConst(branches))
+   {
+      for (const auto &branch : pair.second)
+      {
+         if (branch.contains("/"))
+            branchFolderShaMap.insert(std::make_pair(branch, pair.first));
+         else
+            branchShaMap.insert(std::make_pair(branch, pair.first));
+      }
+   }
 
    if (!branches.empty())
    {
       QLog_Info("UI", QString("Fetched {%1} local branches").arg(branches.count()));
       QLog_Info("UI", QString("Processing local branches..."));
 
-      for (const auto &pair : branches)
+      for (const auto &iter : branchFolderShaMap)
       {
-         for (const auto &branch : pair.second)
+         if (!iter.first.contains("HEAD->"))
          {
-            if (!branch.contains("HEAD->"))
-            {
-               processLocalBranch(pair.first, branch);
-               mMinimal->configureLocalMenu(pair.first, branch);
-            }
+            processLocalBranch(iter.second, iter.first);
+            mMinimal->configureLocalMenu(iter.second, iter.first);
+         }
+      }
+
+      for (const auto &iter : branchShaMap)
+      {
+         if (!iter.first.contains("HEAD->"))
+         {
+            processLocalBranch(iter.second, iter.first);
+            mMinimal->configureLocalMenu(iter.second, iter.first);
          }
       }
 
       QLog_Info("UI", QString("... local branches processed"));
    }
 
+   branches.clear();
+   branches.squeeze();
+   branchShaMap.clear();
+   branchFolderShaMap.clear();
    branches = mCache->getBranches(References::Type::RemoteBranches);
+
+   QVector<RemoteBranch> remoteBranches;
+
+   for (const auto &pair : qAsConst(branches))
+   {
+      for (const auto &branch : pair.second)
+      {
+         remoteBranches.append(
+             RemoteBranch { branch.mid(0, branch.indexOf("/")), branch.mid(branch.indexOf("/") + 1), pair.first });
+      }
+   }
+
+   std::sort(remoteBranches.begin(), remoteBranches.end(), [](const RemoteBranch &r1, const RemoteBranch &r2) {
+      return r1.remote == r2.remote ? r1.branch < r2.branch : r1.remote < r2.remote;
+   });
+
+   for (const auto &branchInfo : qAsConst(remoteBranches))
+   {
+      const auto fullBranchName = QString("%1/%2").arg(branchInfo.remote, branchInfo.branch);
+
+      if (branchInfo.branch.contains("/"))
+         branchFolderShaMap.insert(std::make_pair(fullBranchName, branchInfo.sha));
+      else
+         branchShaMap.insert(std::make_pair(fullBranchName, branchInfo.sha));
+   }
 
    if (!branches.empty())
    {
       QLog_Info("UI", QString("Fetched {%1} remote branches").arg(branches.count()));
       QLog_Info("UI", QString("Processing remote branches..."));
 
-      for (const auto &pair : qAsConst(branches))
+      for (const auto &iter : branchFolderShaMap)
       {
-         for (const auto &branch : pair.second)
+         if (!iter.first.contains("HEAD->"))
          {
-            if (!branch.contains("HEAD->"))
-            {
-               processRemoteBranch(pair.first, branch);
-               mMinimal->configureRemoteMenu(pair.first, branch);
-            }
+            processRemoteBranch(iter.second, iter.first);
+            mMinimal->configureRemoteMenu(iter.second, iter.first);
          }
       }
+
+      for (const auto &iter : branchShaMap)
+      {
+         if (!iter.first.contains("HEAD->"))
+         {
+            processRemoteBranch(iter.second, iter.first);
+            mMinimal->configureRemoteMenu(iter.second, iter.first);
+         }
+      }
+
+      branches.clear();
+      branches.squeeze();
 
       QLog_Info("UI", QString("... remote branches processed"));
    }
@@ -542,6 +607,9 @@ void BranchesWidget::processLocalBranch(const QString &sha, QString branch)
       }
    }
 
+   parents.clear();
+   parents.squeeze();
+
    mLocalBranchesTree->addTopLevelItem(item);
 
    QLog_Debug("UI", QString("Finish gathering local branch information"));
@@ -587,7 +655,7 @@ void BranchesWidget::processRemoteBranch(const QString &sha, QString branch)
          parent = child;
    }
 
-   QLog_Debug("UI", QString("Adding remote branch {%1}").arg(branch));
+   QLog_Trace("UI", QString("Adding remote branch {%1}").arg(branch));
 
    const auto item = new QTreeWidgetItem(parent);
    item->setChildIndicatorPolicy(QTreeWidgetItem::DontShowIndicator);
@@ -604,12 +672,12 @@ void BranchesWidget::processTags()
    mTagsTree->clear();
 
    const auto localTags = mCache->getTags(References::Type::LocalTag);
-   const auto remoteTags = mCache->getTags(References::Type::RemoteTag);
+   auto remoteTags = mCache->getTags(References::Type::RemoteTag);
 
-   for (const auto &localTag : localTags.toStdMap())
+   for (auto iter = localTags.cbegin(); iter != localTags.cend(); ++iter)
    {
       QTreeWidgetItem *parent = nullptr;
-      auto fullTagName = localTag.first;
+      auto fullTagName = iter.key();
       auto folders = fullTagName.split("/");
       auto tagName = folders.takeLast();
 
@@ -618,9 +686,7 @@ void BranchesWidget::processTags()
          QTreeWidgetItem *child = nullptr;
 
          if (parent)
-         {
             child = getChild(parent, folder);
-         }
          else
          {
             for (auto i = 0; i < mTagsTree->topLevelItemCount(); ++i)
@@ -646,20 +712,72 @@ void BranchesWidget::processTags()
 
       const auto item = new QTreeWidgetItem(parent);
 
-      if (!remoteTags.contains(tagName))
+      if (!remoteTags.contains(fullTagName))
       {
          tagName += " (local)";
          item->setData(0, LocalBranchRole, false);
       }
       else
+      {
          item->setData(0, LocalBranchRole, true);
+         remoteTags.remove(fullTagName);
+      }
 
-      QLog_Debug("UI", QString("Adding tag {%1}").arg(tagName));
+      QLog_Trace("UI", QString("Adding tag {%1}").arg(tagName));
 
       item->setChildIndicatorPolicy(QTreeWidgetItem::DontShowIndicator);
       item->setText(0, tagName);
       item->setData(0, GitQlient::FullNameRole, fullTagName);
-      item->setData(0, GitQlient::ShaRole, localTag.second);
+      item->setData(0, GitQlient::ShaRole, iter.value());
+      item->setData(0, Qt::ToolTipRole, fullTagName);
+      item->setData(0, GitQlient::IsLeaf, true);
+
+      mTagsTree->addTopLevelItem(item);
+   }
+
+   for (auto iter = remoteTags.cbegin(); iter != remoteTags.cend(); ++iter)
+   {
+      QTreeWidgetItem *parent = nullptr;
+      auto fullTagName = iter.key();
+      auto folders = fullTagName.split("/");
+      auto tagName = folders.takeLast();
+
+      for (const auto &folder : qAsConst(folders))
+      {
+         QTreeWidgetItem *child = nullptr;
+
+         if (parent)
+            child = getChild(parent, folder);
+         else
+         {
+            for (auto i = 0; i < mTagsTree->topLevelItemCount(); ++i)
+            {
+               if (mTagsTree->topLevelItem(i)->text(0) == folder)
+                  child = mTagsTree->topLevelItem(i);
+            }
+         }
+
+         if (!child)
+         {
+            const auto item = parent ? new QTreeWidgetItem(parent) : new QTreeWidgetItem();
+            item->setText(0, folder);
+
+            if (!parent)
+               mTagsTree->addTopLevelItem(item);
+
+            parent = item;
+         }
+         else
+            parent = child;
+      }
+
+      QLog_Trace("UI", QString("Adding tag {%1}").arg(tagName));
+
+      const auto item = new QTreeWidgetItem(parent);
+      item->setChildIndicatorPolicy(QTreeWidgetItem::DontShowIndicator);
+      item->setText(0, tagName);
+      item->setData(0, GitQlient::FullNameRole, fullTagName);
+      item->setData(0, GitQlient::ShaRole, iter.value());
       item->setData(0, Qt::ToolTipRole, fullTagName);
       item->setData(0, GitQlient::IsLeaf, true);
 
@@ -719,7 +837,7 @@ void BranchesWidget::processSubtrees()
 
    if (ret.success)
    {
-      const auto rawData = ret.output.toString();
+      const auto rawData = ret.output;
       const auto commits = rawData.split("\n\n");
       auto count = 0;
 
@@ -782,7 +900,7 @@ void BranchesWidget::showTagsContextMenu(const QPoint &p)
          QApplication::restoreOverrideCursor();
 
          if (ret.success)
-            emit signalBranchesUpdated();
+            mGitTags->getRemoteTags();
       });
 
       const auto pushTagAction = menu->addAction(tr("Push tag"));
@@ -794,7 +912,7 @@ void BranchesWidget::showTagsContextMenu(const QPoint &p)
          QApplication::restoreOverrideCursor();
 
          if (ret.success)
-            emit signalBranchesUpdated();
+            mGitTags->getRemoteTags();
       });
 
       menu->exec(mTagsTree->viewport()->mapToGlobal(p));
@@ -810,8 +928,8 @@ void BranchesWidget::showStashesContextMenu(const QPoint &p)
    if (index.isValid())
    {
       const auto menu = new StashesContextMenu(mGit, index.data(Qt::UserRole).toString(), this);
-      connect(menu, &StashesContextMenu::signalUpdateView, this, &BranchesWidget::signalBranchesUpdated);
-      connect(menu, &StashesContextMenu::signalContentRemoved, this, &BranchesWidget::signalBranchesUpdated);
+      connect(menu, &StashesContextMenu::signalUpdateView, this, &BranchesWidget::fullReload);
+      connect(menu, &StashesContextMenu::signalContentRemoved, this, &BranchesWidget::fullReload);
       menu->exec(mStashesList->viewport()->mapToGlobal(p));
    }
 }
@@ -822,7 +940,7 @@ void BranchesWidget::showSubmodulesContextMenu(const QPoint &p)
 
    const auto menu = new SubmodulesContextMenu(mGit, mSubmodulesList->indexAt(p), this);
    connect(menu, &SubmodulesContextMenu::openSubmodule, this, &BranchesWidget::signalOpenSubmodule);
-   connect(menu, &SubmodulesContextMenu::infoUpdated, this, &BranchesWidget::signalBranchesUpdated);
+   connect(menu, &SubmodulesContextMenu::infoUpdated, this, &BranchesWidget::fullReload);
 
    menu->exec(mSubmodulesList->viewport()->mapToGlobal(p));
 }
@@ -848,9 +966,9 @@ void BranchesWidget::showSubtreesContextMenu(const QPoint &p)
          QApplication::restoreOverrideCursor();
 
          if (ret.success)
-            emit signalBranchesUpdated();
+            emit fullReload();
          else
-            QMessageBox::warning(this, tr("Error when pulling"), ret.output.toString());
+            QMessageBox::warning(this, tr("Error when pulling"), ret.output);
       });
       /*
       connect(menu->addAction(tr("Merge")), &QAction::triggered, this, [this, index]() {
@@ -877,9 +995,9 @@ void BranchesWidget::showSubtreesContextMenu(const QPoint &p)
          QApplication::restoreOverrideCursor();
 
          if (ret.success)
-            emit signalBranchesUpdated();
+            emit fullReload();
          else
-            QMessageBox::warning(this, tr("Error when pushing"), ret.output.toString());
+            QMessageBox::warning(this, tr("Error when pushing"), ret.output);
       });
 
       const auto addSubtree = menu->addAction(tr("Configure"));
@@ -889,7 +1007,7 @@ void BranchesWidget::showSubtreesContextMenu(const QPoint &p)
          AddSubtreeDlg addDlg(prefix, subtreeData.first, subtreeData.second, mGit);
          const auto ret = addDlg.exec();
          if (ret == QDialog::Accepted)
-            emit signalBranchesUpdated();
+            emit fullReload();
       });
       // menu->addAction(tr("Split"));
    }
@@ -900,7 +1018,7 @@ void BranchesWidget::showSubtreesContextMenu(const QPoint &p)
          AddSubtreeDlg addDlg(mGit);
          const auto ret = addDlg.exec();
          if (ret == QDialog::Accepted)
-            emit signalBranchesUpdated();
+            emit fullReload();
       });
    }
 
@@ -940,6 +1058,9 @@ void BranchesWidget::onSubtreesHeaderClicked()
    mSubtreeArrow->setPixmap(icon.pixmap(QSize(15, 15)));
    mSubtreeList->setVisible(!subtreesAreVisible);
 
+   GitQlientSettings settings(mGit->getGitDir());
+   settings.setLocalValue("SubtreeHeader", !subtreesAreVisible);
+
    emit panelsVisibilityChanged();
 }
 
@@ -957,7 +1078,7 @@ void BranchesWidget::onStashClicked(QListWidgetItem *item)
 void BranchesWidget::onStashSelected(const QString &stashId)
 {
    QScopedPointer<GitTags> git(new GitTags(mGit));
-   const auto sha = git->getTagCommit(stashId).output.toString();
+   const auto sha = git->getTagCommit(stashId).output;
 
    emit signalSelectCommit(sha);
 }
@@ -971,7 +1092,7 @@ void BranchesWidget::onSearchBranch()
    if (mLastSearch != text)
    {
       mLastSearch = text;
-      mLastIndex = mLocalBranchesTree->focusOnBranch(text);
+      mLastIndex = mLocalBranchesTree->focusOnBranch(mLastSearch);
       mLastTreeSearched = mLocalBranchesTree;
 
       if (mLastIndex == -1)
@@ -980,7 +1101,13 @@ void BranchesWidget::onSearchBranch()
          mLastTreeSearched = mRemoteBranchesTree;
 
          if (mLastIndex == -1)
-            mLastTreeSearched = mLocalBranchesTree;
+         {
+            mLastIndex = mTagsTree->focusOnBranch(mLastSearch);
+            mLastTreeSearched = mTagsTree;
+
+            if (mLastIndex == -1)
+               mLastTreeSearched = mLocalBranchesTree;
+         }
       }
    }
    else
@@ -998,11 +1125,31 @@ void BranchesWidget::onSearchBranch()
             mLastIndex = mRemoteBranchesTree->focusOnBranch(mLastSearch);
             mLastTreeSearched = mRemoteBranchesTree;
          }
+
+         if (mLastIndex == -1)
+         {
+            mLastIndex = mTagsTree->focusOnBranch(mLastSearch);
+            mLastTreeSearched = mTagsTree;
+         }
+      }
+      else if (mLastTreeSearched == mRemoteBranchesTree)
+      {
+         if (mLastIndex == -1)
+         {
+            mLastIndex = mRemoteBranchesTree->focusOnBranch(mLastSearch);
+            mLastTreeSearched = mRemoteBranchesTree;
+         }
+
+         if (mLastIndex == -1)
+         {
+            mLastIndex = mTagsTree->focusOnBranch(mLastSearch);
+            mLastTreeSearched = mTagsTree;
+         }
       }
       else if (mLastIndex != -1)
       {
-         mLastIndex = mRemoteBranchesTree->focusOnBranch(mLastSearch, mLastIndex);
-         mLastTreeSearched = mRemoteBranchesTree;
+         mLastIndex = mTagsTree->focusOnBranch(mLastSearch, mLastIndex);
+         mLastTreeSearched = mTagsTree;
 
          if (mLastIndex == -1)
             mLastTreeSearched = mLocalBranchesTree;

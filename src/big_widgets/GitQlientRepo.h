@@ -32,7 +32,6 @@ class GitQlientSettings;
 class GitCache;
 class GitRepoLoader;
 class QCloseEvent;
-class QFileSystemWatcher;
 class QStackedLayout;
 class Controls;
 class HistoryWidget;
@@ -85,7 +84,11 @@ signals:
     * @brief signalLoadRepo Signal used to trigger the data update in a different thread.
     * @param full Requests a full repository refresh: includes commits and references.
     */
-   void signalLoadRepo(bool full);
+   void fullReload();
+
+   void referencesReload();
+
+   void logReload();
 
    /**
     * @brief repoOpened Signal triggered when the repo was successfully opened.
@@ -161,19 +164,12 @@ private:
    QTimer *mAutoFilesUpdate = nullptr;
    QTimer *mAutoPrUpdater = nullptr;
    QPointer<WaitingDlg> mWaitDlg;
-   QFileSystemWatcher *mGitWatcher = nullptr;
    QPair<ControlsMainViews, QWidget *> mPreviousView;
    QSharedPointer<GitServer::IRestApi> mApi;
-   QSharedPointer<GitTags> mGitTags;
 
    bool mIsInit = false;
    QThread *m_loaderThread;
 
-   /*!
-    \brief Updates the UI cache and refreshes the subwidgets.
-
-   */
-   void updateCache(bool full);
    /*!
     \brief Performs a light UI update triggered by the QFileSystemWatcher.
 
@@ -195,12 +191,7 @@ private:
 
     \param ok True if the changes are committed, otherwise false.
    */
-   void changesCommitted(bool ok);
-   /*!
-    \brief Method that sets the watcher for the files in the system.
-
-   */
-   void setWatcher();
+   void onChangesCommitted();
    /*!
     \brief Clears the views and its subwidgets.
 
@@ -318,12 +309,4 @@ private:
     * @param prNumber The PR to put the focus on.
     */
    void focusHistoryOnPr(int prNumber);
-
-   /**
-    * @brief containsSubmodule Analyzes a path to see if the path is one of the submodules.
-    * @param path The full path to check if submodule.
-    * @param submodules The list of submodules.
-    * @return True if the path is in a submodule.
-    */
-   bool containsSubmodule(const QString &path, const QVector<QString> &submodules);
 };

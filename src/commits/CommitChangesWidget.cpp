@@ -91,16 +91,16 @@ void CommitChangesWidget::resetFile(QListWidgetItem *item)
    QScopedPointer<GitLocal> git(new GitLocal(mGit));
    const auto ret = git->resetFile(item->toolTip());
    const auto revInfo = mCache->commitInfo(mCurrentSha);
-   const auto files = mCache->revisionFile(mCurrentSha, revInfo.parent(0));
+   const auto files = mCache->revisionFile(mCurrentSha, revInfo.firstParent());
 
-   for (auto i = 0; i < files.count(); ++i)
+   for (auto i = 0; i < files->count(); ++i)
    {
-      auto fileName = files.getFile(i);
+      auto fileName = files->getFile(i);
 
       if (fileName == item->toolTip())
       {
-         const auto isUnknown = files.statusCmp(i, RevisionFiles::UNKNOWN);
-         const auto isInIndex = files.statusCmp(i, RevisionFiles::IN_INDEX);
+         const auto isUnknown = files->statusCmp(i, RevisionFiles::UNKNOWN);
+         const auto isInIndex = files->statusCmp(i, RevisionFiles::IN_INDEX);
          const auto untrackedFile = !isInIndex && isUnknown;
          const auto row = ui->stagedFilesList->row(item);
          const auto icon = QIcon::fromTheme("list-add", QIcon(":/icons/add"));
@@ -188,11 +188,14 @@ void CommitChangesWidget::prepareCache()
 
 void CommitChangesWidget::clearCache()
 {
+
    for (auto it = mInternalCache.begin(); it != mInternalCache.end();)
    {
       if (!it.value().keep)
       {
-         delete it.value().item;
+         if (it.value().item)
+            delete it.value().item;
+
          it = mInternalCache.erase(it);
       }
       else
@@ -202,7 +205,7 @@ void CommitChangesWidget::clearCache()
 
 void CommitChangesWidget::insertFiles(const RevisionFiles &files, QListWidget *fileList)
 {
-   for (auto &cachedItem : mInternalCache)
+   for (auto &cachedItem : mInternalCache) // Move to prepareCache
       cachedItem.keep = false;
 
    for (auto i = 0; i < files.count(); ++i)
@@ -314,7 +317,8 @@ void CommitChangesWidget::addAllFilesToCommitList()
 void CommitChangesWidget::requestDiff(const QString &fileName)
 {
    const auto isCached = qobject_cast<StagedFilesList *>(sender()) == ui->stagedFilesList;
-   emit signalShowDiff(CommitInfo::ZERO_SHA, mCache->commitInfo(CommitInfo::ZERO_SHA).parent(0), fileName, isCached);
+   emit signalShowDiff(CommitInfo::ZERO_SHA, mCache->commitInfo(CommitInfo::ZERO_SHA).firstParent(), fileName,
+                       isCached);
 }
 
 QString CommitChangesWidget::addFileToCommitList(QListWidgetItem *item, bool updateGit)
@@ -465,9 +469,8 @@ bool CommitChangesWidget::checkMsg(QString &msg)
       return false;
    }
 
-   QString subj(msg.section('\n', 0, 0, QString::SectionIncludeTrailingSep));
-   QString body(msg.section('\n', 1).trimmed());
-   msg = subj + '\n' + body + '\n';
+   msg = QString("%1\n%2\n")
+             .arg(msg.section('\n', 0, 0, QString::SectionIncludeTrailingSep), msg.section('\n', 1).trimmed());
 
    return true;
 }
@@ -479,9 +482,8 @@ void CommitChangesWidget::updateCounter(const QString &text)
 
 bool CommitChangesWidget::hasConflicts()
 {
-   const auto end = mInternalCache.cend();
-   for (auto iter = mInternalCache.cbegin(); iter != end; ++iter)
-      if (iter.value().item->data(GitQlientRole::U_IsConflict).toBool())
+   for (const auto &iter : qAsConst(mInternalCache))
+      if (iter.item->data(GitQlientRole::U_IsConflict).toBool())
          return true;
 
    return false;
@@ -494,6 +496,22 @@ void CommitChangesWidget::clear()
    mInternalCache.clear();
    ui->leCommitTitle->clear();
    ui->teDescription->clear();
+   ui->applyActionBtn->setEnabled(false);
+}
+
+void CommitChangesWidget::clearStaged()
+{
+   ui->stagedFilesList->clear();
+
+   const auto end = mInternalCache.end();
+   for (auto it = mInternalCache.begin(); it != end;)
+   {
+      if (it.key().contains(QString("-%1").arg(ui->stagedFilesList->objectName())))
+         it = mInternalCache.erase(it);
+      else
+         ++it;
+   }
+
    ui->applyActionBtn->setEnabled(false);
 }
 

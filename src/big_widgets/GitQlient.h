@@ -23,8 +23,8 @@
  ** Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  ***************************************************************************************/
 
-#include <QWidget>
 #include <QSet>
+#include <QWidget>
 
 class QPinnableTabWidget;
 class InitScreen;
@@ -32,6 +32,7 @@ class ProgressDlg;
 class GitConfig;
 class QStackedLayout;
 class GitQlientSettings;
+class GitBase;
 
 /*!
  \brief The GitQlient class is the MainWindow of the GitQlient application. Is the widget that stores all the tabs about
@@ -76,13 +77,14 @@ public:
     * @param pinnedRepos The list of repos to restore
     */
    void restorePinnedRepos();
-   
+
    /*!
     \brief This method parses all the arguments and configures GitQlient settings with them. Part of the arguments can
-    be a list of repositories to be opened. In that case, the method returns the list of repositories to open in the repos out parameter.
+    be a list of repositories to be opened. In that case, the method returns the list of repositories to open in the
+    repos out parameter.
 
     \param arguments Arguments from the command prompt.
-    \param repos Output paramter, repositories to open.
+    \param repos Output parameter, repositories to open.
     \return Returns true if application should continue or false if it should quit.
    */
    static bool parseArguments(const QStringList &arguments, QStringList *repos);
@@ -167,9 +169,11 @@ private:
    /**
     * @brief conditionallyOpenPreConfigDlg Opens the pre-config dialog in case that the repo is open for the very first
     * time.
+    * @param git The git object to perform Git operations.
     * @param settings The settings object to store the new values.
     */
-   void conditionallyOpenPreConfigDlg(const QSharedPointer<GitQlientSettings> &settings);
+   void conditionallyOpenPreConfigDlg(const QSharedPointer<GitBase> &git,
+                                      const QSharedPointer<GitQlientSettings> &settings);
 
    /**
     * @brief updateWindowTitle Updates the window title of GitQlient appending the branch of the current repository.

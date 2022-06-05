@@ -32,6 +32,8 @@
 #include <QObject>
 #include <QSharedPointer>
 
+#include <optional>
+
 struct WipRevisionInfo;
 
 class GitCache : public QObject
@@ -55,54 +57,61 @@ public:
 
    CommitInfo commitInfo(const QString &sha);
    CommitInfo commitInfo(int row);
-   int commitPos(const QString &sha);
-
    CommitInfo searchCommitInfo(const QString &text, int startingPoint = 0, bool reverse = false);
+   bool isCommitInCurrentGeneologyTree(const QString &sha);
+   bool updateWipCommit(const QString &parentSha, const RevisionFiles &files);
+   void insertCommit(CommitInfo commit);
+   void updateCommit(const QString &oldSha, CommitInfo newCommit);
 
-   bool isCommitInCurrentGeneologyTree(const QString &sha) const;
-
-   bool insertRevisionFile(const QString &sha1, const QString &sha2, const RevisionFiles &file);
-   RevisionFiles revisionFile(const QString &sha1, const QString &sha2) const;
+   bool insertRevisionFiles(const QString &sha1, const QString &sha2, const RevisionFiles &file);
+   std::optional<RevisionFiles> revisionFile(const QString &sha1, const QString &sha2) const;
 
    void clearReferences();
    void insertReference(const QString &sha, References::Type type, const QString &reference);
-   bool hasReferences(const QString &sha) const;
-   QStringList getReferences(const QString &sha, References::Type type) const;
-
+   void deleteReference(const QString &sha, References::Type type, const QString &reference);
+   bool hasReferences(const QString &sha);
+   QStringList getReferences(const QString &sha, References::Type type);
+   QString getShaOfReference(const QString &referenceName, References::Type type) const;
    void reloadCurrentBranchInfo(const QString &currentBranch, const QString &currentSha);
 
-   bool updateWipCommit(const WipRevisionInfo &wipInfo);
-
-   void setUntrackedFilesList(const QVector<QString> &untrackedFiles);
+   QVector<QString> getUntrackedFiles() const { return mUntrackedFiles; }
+   void setUntrackedFilesList(QVector<QString> untrackedFiles);
    bool pendingLocalChanges();
 
    QVector<QPair<QString, QStringList>> getBranches(References::Type type);
    QMap<QString, QString> getTags(References::Type tagType) const;
 
-   void updateTags(const QMap<QString, QString> &remoteTags);
+   void updateTags(QMap<QString, QString> remoteTags);
+
+   bool isInitialized() const { return mInitialized; }
 
 private:
    friend class GitRepoLoader;
 
-   QMutex mMutex;
+   bool mInitialized = false;
    bool mConfigured = true;
+   Lanes mLanes;
+   QVector<QString> mUntrackedFiles;
+
+   mutable QMutex mCommitsMutex;
    QVector<CommitInfo *> mCommits;
    QHash<QString, CommitInfo> mCommitsMap;
-   QMultiMap<QString, CommitInfo *> mTmpChildsStorage;
-   QHash<QPair<QString, QString>, RevisionFiles> mRevisionFilesMap;
-   Lanes mLanes;
-   QVector<QString> mUntrackedfiles;
-   QMap<QString, References> mReferences;
-   QMap<QString, QString> mRemoteTags;
 
-   void setup(const WipRevisionInfo &wipInfo, const QList<CommitInfo> &commits);
+   mutable QMutex mRevisionsMutex;
+   QHash<QPair<QString, QString>, RevisionFiles> mRevisionFilesMap;
+
+   mutable QMutex mReferencesMutex;
+   QHash<QString, References> mReferences;
+
+   void setup(const QString &parentSha, const RevisionFiles &files, QVector<CommitInfo> commits);
    void setConfigurationDone() { mConfigured = true; }
 
-   void insertWipRevision(const WipRevisionInfo &wipInfo);
-   RevisionFiles fakeWorkDirRevFile(const QString &diffIndex, const QString &diffIndexCache);
-   QVector<Lane> calculateLanes(const CommitInfo &c);
+   bool insertRevisionFile(const QString &sha1, const QString &sha2, const RevisionFiles &file);
+   void insertWipRevision(const QString parentSha, const RevisionFiles &files);
+   void calculateLanes(CommitInfo &c);
    auto searchCommit(const QString &text, int startingPoint = 0) const;
    auto reverseSearchCommit(const QString &text, int startingPoint = 0) const;
    void resetLanes(const CommitInfo &c, bool isFork);
    bool checkSha(const QString &originalSha, const QString &currentSha) const;
+   void clearInternalData();
 };

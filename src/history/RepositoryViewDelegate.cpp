@@ -56,7 +56,7 @@ void RepositoryViewDelegate::paint(QPainter *p, const QStyleOptionViewItem &opt,
 
    const auto commit = mCache->commitInfo(row);
 
-   if (commit.sha().isEmpty())
+   if (commit.sha.isEmpty())
       return;
 
    QPalette palette;
@@ -96,14 +96,18 @@ void RepositoryViewDelegate::paint(QPainter *p, const QStyleOptionViewItem &opt,
          newOpt.font.setPointSize(8);
          newOpt.font.setFamily("DejaVu Sans Mono");
 
-         text = commit.sha() != CommitInfo::ZERO_SHA ? text.left(8) : "";
+         text = commit.sha != CommitInfo::ZERO_SHA ? text.left(8) : "";
       }
       else if (index.column() == static_cast<int>(CommitHistoryColumns::Author) && commit.isSigned())
       {
          static const auto size = 15;
          static const auto offset = 5;
-         QIcon icon = QIcon::fromTheme("checkbox", QIcon(":/icons/signed"));
-         QPixmap pic = icon.pixmap(size, size);
+
+         // TODO: theme icons for signed/usigned
+         // QIcon icon = QIcon::fromTheme("checkbox", QIcon(":/icons/signed"));
+         QPixmap pic(QString::fromUtf8(commit.verifiedSignature() ? ":/icons/signed" : ":/icons/unsigned"));
+         pic = pic.scaled(size, size, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+
          const auto inc = (newOpt.rect.height() - size) / 2;
 
          p->drawPixmap(QRect(newOpt.rect.x(), newOpt.rect.y() + inc, size, size), pic);
@@ -336,7 +340,7 @@ QColor RepositoryViewDelegate::getMergeColor(const Lane &currentLane, const Comm
       case LaneType::JOIN_L:
          for (auto laneCount = 0; laneCount < currentLaneIndex; ++laneCount)
          {
-            if (commit.getLane(laneCount).equals(LaneType::JOIN_L))
+            if (commit.laneAt(laneCount).equals(LaneType::JOIN_L))
             {
                mergeColor = GitQlientStyles::getBranchColorAt(laneCount % GitQlientStyles::getTotalBranchColors());
                isSet = true;
@@ -365,7 +369,7 @@ void RepositoryViewDelegate::paintGraph(QPainter *p, const QStyleOptionViewItem 
    }
    else
    {
-      if (commit.sha() == CommitInfo::ZERO_SHA)
+      if (commit.sha == CommitInfo::ZERO_SHA)
       {
          const auto activeColor = GitQlientStyles::getBranchColorAt(0);
          QColor color = activeColor;
@@ -378,7 +382,7 @@ void RepositoryViewDelegate::paintGraph(QPainter *p, const QStyleOptionViewItem 
       }
       else
       {
-         const auto laneNum = commit.getLanesCount();
+         const auto laneNum = commit.lanesCount();
          const auto activeLane = commit.getActiveLane();
          const auto activeColor
              = GitQlientStyles::getBranchColorAt(activeLane % GitQlientStyles::getTotalBranchColors());
@@ -391,11 +395,11 @@ void RepositoryViewDelegate::paintGraph(QPainter *p, const QStyleOptionViewItem 
          {
             x1 = x2 - LANE_WIDTH;
 
-            auto currentLane = commit.getLane(i);
+            auto currentLane = commit.laneAt(i);
 
             if (!laneHeadPresent && i < laneNum - 1)
             {
-               auto prevLane = commit.getLane(i + 1);
+               auto prevLane = commit.laneAt(i + 1);
                laneHeadPresent
                    = prevLane.isHead() || prevLane.equals(LaneType::JOIN_R) || prevLane.equals(LaneType::JOIN_L);
             }
@@ -425,7 +429,7 @@ void RepositoryViewDelegate::paintGraph(QPainter *p, const QStyleOptionViewItem 
 void RepositoryViewDelegate::paintLog(QPainter *p, const QStyleOptionViewItem &opt, const CommitInfo &commit,
                                       const QString &text, QColor textColor) const
 {
-   const auto sha = commit.sha();
+   const auto sha = commit.sha;
 
    if (sha.isEmpty())
       return;
@@ -434,7 +438,7 @@ void RepositoryViewDelegate::paintLog(QPainter *p, const QStyleOptionViewItem &o
 
    if (mGitServerCache)
    {
-      if (const auto pr = mGitServerCache->getPullRequest(commit.sha()); pr.isValid())
+      if (const auto pr = mGitServerCache->getPullRequest(commit.sha); pr.isValid())
       {
          offset = 5;
          paintPrStatus(p, opt, offset, pr);
@@ -468,7 +472,7 @@ void RepositoryViewDelegate::paintTagBranch(QPainter *painter, QStyleOptionViewI
 
       if ((currentBranch.isEmpty() || currentBranch == "HEAD"))
       {
-         if (const auto ret = mGit->getLastCommit(); ret.success && sha == ret.output.toString().trimmed())
+         if (const auto ret = mGit->getLastCommit(); ret.success && sha == ret.output.trimmed())
          {
             marks.append("detached");
             colors.append(graphDetached);

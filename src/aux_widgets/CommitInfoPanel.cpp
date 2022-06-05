@@ -1,13 +1,18 @@
 #include <CommitInfoPanel.h>
+
+#include <ButtonLink.hpp>
 #include <CommitInfo.h>
 
-#include <QVBoxLayout>
+#include <QApplication>
+#include <QClipboard>
 #include <QLabel>
 #include <QScrollArea>
+#include <QToolTip>
+#include <QVBoxLayout>
 
 CommitInfoPanel::CommitInfoPanel(QWidget *parent)
    : QFrame(parent)
-   , mLabelSha(new QLabel())
+   , mLabelSha(new ButtonLink())
    , mLabelTitle(new QLabel())
    , mLabelDescription(new QLabel())
    , mLabelAuthor(new QLabel())
@@ -49,20 +54,28 @@ CommitInfoPanel::CommitInfoPanel(QWidget *parent)
    descriptionLayout->addWidget(wipSeparator);
    descriptionLayout->addWidget(mLabelAuthor);
    descriptionLayout->addWidget(mLabelDateTime);
+
+   connect(mLabelSha, &ButtonLink::clicked, this, [this]() {
+      const auto button = qobject_cast<ButtonLink *>(sender());
+      QApplication::clipboard()->setText(button->data().toString());
+      QToolTip::showText(QCursor::pos(), tr("Copied!"), button);
+   });
 }
 
 void CommitInfoPanel::configure(const CommitInfo &commit)
 {
-   mLabelSha->setText(commit.sha());
+   mLabelSha->setText(commit.sha.left(8));
+   mLabelSha->setData(commit.sha);
+   mLabelSha->setToolTip("Click to save");
 
-   const auto authorName = commit.committer().split("<").first();
-   mLabelTitle->setText(commit.shortLog());
+   const auto authorName = commit.committer.split("<").first();
+   mLabelTitle->setText(commit.shortLog);
    mLabelAuthor->setText(authorName);
 
-   QDateTime commitDate = QDateTime::fromSecsSinceEpoch(commit.authorDate().toInt());
+   QDateTime commitDate = QDateTime::fromSecsSinceEpoch(commit.dateSinceEpoch.count());
    mLabelDateTime->setText(commitDate.toString("dd/MM/yyyy hh:mm"));
 
-   const auto description = commit.longLog();
+   const auto description = commit.longLog;
    mLabelDescription->setText(description.isEmpty() ? "<No description provided>" : description);
 
    QFontMetrics fm(mLabelDescription->font());

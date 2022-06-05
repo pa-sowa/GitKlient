@@ -43,11 +43,9 @@ class CommitHistoryView : public QTreeView
    Q_OBJECT
 
 signals:
-   /**
-    * @brief requestReload Signal triggered when the user forces a refresh of the repository data.
-    * @param full True if the refresh includes commits and references, otherwise it refreshes only commits.
-    */
-   void requestReload(bool full);
+   void fullReload();
+   void referencesReload();
+   void logReload();
 
    /*!
     \brief Signal triggered when the user wants to open the diff of a commit compared to its parent.
@@ -56,7 +54,7 @@ signals:
    */
    void signalOpenDiff(const QString &sha);
    /*!
-    \brief Signal triggered when the user whants to diff the shas in the list. This signal is only emited if the user
+    \brief Signal triggered when the user wants to diff the shas in the list. This signal is only emitted if the user
     selected two SHAs.
 
     \param sha The shas to diff between.
@@ -76,6 +74,16 @@ signals:
     \param destination The branch to merge into.
    */
    void signalMergeRequired(const QString &origin, const QString &destination);
+
+   /**
+    * @brief Signal triggered when a merge with squash behavior has been requested. Since it involves a lot of changes
+    * at UI level this action is not performed here.
+    *
+    * @param origin The branch to merge from.
+    * @param destination The branch to merge into.
+    */
+   void mergeSqushRequested(const QString &origin, const QString &destination);
+
    /*!
     * \brief signalConflict Signal triggered when trying to cherry-pick or pull and a conflict happens.
     */
@@ -115,9 +123,9 @@ public:
    /**
     * @brief Returns the list of SHAs that the user has selected in the view.
     *
-    * @return QList<QString> Gets the selected SHA list.
+    * @return QStringList Gets the selected SHA list.
     */
-   QList<QString> getSelectedShaList() const;
+   QStringList getSelectedShaList() const;
    /**
     * @brief If the view has a filter active this method tells the filter which SHAs are going to be shown.
     *

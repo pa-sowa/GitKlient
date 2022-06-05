@@ -164,8 +164,16 @@ void MergeWidget::fillButtonFileList(const RevisionFiles &files)
    {
       const auto fileName = files.getFile(i);
       const auto fileInConflict = files.statusCmp(i, RevisionFiles::CONFLICT);
+      const auto fileDeleted = fileInConflict ? files.statusCmp(i, RevisionFiles::DELETED) : false;
       const auto item = new QListWidgetItem(fileName);
       item->setData(Qt::UserRole, fileInConflict);
+
+      QScopedPointer<GitWip> git(new GitWip(mGit, mGitQlientCache));
+
+      if (fileInConflict && fileDeleted)
+         item->setData(Qt::UserRole + 1, static_cast<int>(git->getFileStatus(fileName).value()));
+      else
+         item->setData(Qt::UserRole + 1, 0);
 
       fileInConflict ? mConflictFiles->addItem(item) : mMergedFiles->addItem(item);
    }
@@ -175,9 +183,40 @@ void MergeWidget::changeDiffView(QListWidgetItem *item)
 {
    const auto file = item->text();
    const auto wip = mGitQlientCache->commitInfo(CommitInfo::ZERO_SHA);
+   const auto status = static_cast<GitWip::FileStatus>(item->data(Qt::UserRole + 1).toInt());
+
+   if (status != GitWip::FileStatus::BothModified)
+   {
+      int resolution = 0;
+      if (status == GitWip::FileStatus::DeletedByThem)
+      {
+         resolution = QMessageBox::warning(
+             this, tr("File deleted by them"),
+             tr("The file has been deleted by them. Please add or remove the file to mark resolution."), "Remove file",
+             "Add file");
+      }
+      else
+      {
+         resolution = QMessageBox::warning(
+             this, tr("File deleted by us"),
+             tr("The file has been deleted by us. Please add or remove the file to mark resolution."), "Remove file",
+             "Add file");
+      }
+
+      QScopedPointer<GitLocal> git(new GitLocal(mGit));
+
+      if (resolution == 1)
+         git->stageFile(file);
+      else
+         git->removeFile(file);
+
+      onConflictResolved(file);
+
+      return;
+   }
 
    const auto configured
-       = mFileDiff->configure(CommitInfo::ZERO_SHA, wip.parent(0), mGit->getWorkingDir() + "/" + file, false);
+       = mFileDiff->configure(CommitInfo::ZERO_SHA, wip.firstParent(), mGit->getWorkingDir() + "/" + file, false);
 
    mStacked->setCurrentIndex(configured);
 
@@ -212,7 +251,7 @@ void MergeWidget::abort()
                          tr("There were problems during the aborting the merge. Please, see the detailed "
                             "description for more information."),
                          QMessageBox::Ok, this);
-      msgBox.setDetailedText(ret.output.toString());
+      msgBox.setDetailedText(ret.output);
       msgBox.setStyleSheet(GitQlientStyles::getStyles());
       msgBox.exec();
    }
@@ -225,44 +264,82 @@ void MergeWidget::abort()
    }
 }
 
+bool MergeWidget::checkMsg(QString &msg)
+{
+   const auto title = mCommitTitle->text();
+
+   if (title.isEmpty())
+      QMessageBox::warning(this, "Commit changes", "Please, add a title.");
+
+   msg = title;
+
+   if (!mDescription->toPlainText().isEmpty())
+   {
+      auto description = QString("\n\n%1").arg(mDescription->toPlainText());
+      description.remove(QRegExp("(^|\\n)\\s*#[^\\n]*")); // strip comments
+      msg += description;
+   }
+
+   msg.replace(QRegExp("[ \\t\\r\\f\\v]+\\n"), "\n"); // strip line trailing cruft
+   msg = msg.trimmed();
+
+   if (msg.isEmpty())
+   {
+      QMessageBox::warning(this, "Commit changes", "Please, add a title.");
+      return false;
+   }
+
+   msg = QString("%1\n%2\n")
+             .arg(msg.section('\n', 0, 0, QString::SectionIncludeTrailingSep), msg.section('\n', 1).trimmed());
+
+   return true;
+}
+
 void MergeWidget::commit()
 {
    GitExecResult ret;
 
-   switch (mReason)
+   QString msg;
+
+   const auto msgIsValid = checkMsg(msg);
+
+   if (msgIsValid)
    {
-      case ConflictReason::Pull:
-      case ConflictReason::Merge: {
-         QScopedPointer<GitMerge> git(new GitMerge(mGit, mGitQlientCache));
-         ret = git->applyMerge();
-         break;
+      switch (mReason)
+      {
+         case ConflictReason::Pull:
+         case ConflictReason::Merge: {
+            QScopedPointer<GitMerge> git(new GitMerge(mGit, mGitQlientCache));
+            ret = git->applyMerge(msg);
+            break;
+         }
+         case ConflictReason::CherryPick: {
+            QScopedPointer<GitLocal> git(new GitLocal(mGit));
+            ret = git->cherryPickContinue(msg);
+            break;
+         }
+         default:
+            break;
       }
-      case ConflictReason::CherryPick: {
-         QScopedPointer<GitLocal> git(new GitLocal(mGit));
-         ret = git->cherryPickContinue();
-         break;
+
+      if (!ret.success)
+      {
+         QMessageBox msgBox(QMessageBox::Critical, tr("Error while merging"),
+                            tr("There were problems during the merge operation. Please, see the detailed description "
+                               "for more information."),
+                            QMessageBox::Ok, this);
+         msgBox.setDetailedText(ret.output);
+         msgBox.setStyleSheet(GitQlientStyles::getStyles());
+         msgBox.exec();
       }
-      default:
-         break;
-   }
+      else
+      {
+         removeMergeComponents();
 
-   if (!ret.success)
-   {
-      QMessageBox msgBox(QMessageBox::Critical, tr("Error while merging"),
-                         tr("There were problems during the merge operation. Please, see the detailed description "
-                            "for more information."),
-                         QMessageBox::Ok, this);
-      msgBox.setDetailedText(ret.output.toString());
-      msgBox.setStyleSheet(GitQlientStyles::getStyles());
-      msgBox.exec();
-   }
-   else
-   {
-      removeMergeComponents();
+         if (!mPendingShas.isEmpty()) { }
 
-      if (!mPendingShas.isEmpty()) { }
-
-      emit signalMergeFinished();
+         emit signalMergeFinished();
+      }
    }
 }
 
@@ -311,7 +388,7 @@ void MergeWidget::cherryPickCommit()
          emit signalMergeFinished();
       else if (!ret.success)
       {
-         const auto errorMsg = ret.output.toString();
+         const auto errorMsg = ret.output;
 
          if (errorMsg.contains("error: could not apply", Qt::CaseInsensitive)
              && errorMsg.contains("after resolving the conflicts", Qt::CaseInsensitive))
@@ -321,9 +398,10 @@ void MergeWidget::cherryPickCommit()
             QScopedPointer<GitWip> git(new GitWip(mGit, mGitQlientCache));
             git->updateWip();
 
-            const auto files = mGitQlientCache->revisionFile(CommitInfo::ZERO_SHA, wipCommit.parent(0));
+            const auto files = mGitQlientCache->revisionFile(CommitInfo::ZERO_SHA, wipCommit.firstParent());
 
-            configureForCherryPick(files, shas);
+            if (files)
+               configureForCherryPick(files.value(), shas);
          }
          else
          {

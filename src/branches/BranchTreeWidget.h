@@ -23,30 +23,24 @@
  ** Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  ***************************************************************************************/
 
-#include <QTreeWidget>
+#include <RefTreeWidget.h>
 
 class GitBase;
+class GitCache;
 
 /*!
  \brief The BranchTreeWidget class shows all the information regarding the branches and its position respect master and
  its remote branch.
 
 */
-class BranchTreeWidget : public QTreeWidget
+class BranchTreeWidget : public RefTreeWidget
 {
    Q_OBJECT
 
 signals:
-   /*!
-    \brief Signal triggered when a branch has been updated and requires a GitQlient UI refresh.
+   void fullReload();
+   void logReload();
 
-   */
-   void signalBranchesUpdated();
-   /*!
-    \brief Signal triggered when a branch is checked out and requires a GitQlient UI refresh.
-
-   */
-   void signalBranchCheckedOut();
    /*!
     \brief Signal triggered when the user selects a commit via branch or tag selection.
 
@@ -66,13 +60,18 @@ signals:
    void signalPullConflict();
 
    /**
-    * @brief signalFetchPerformed Signal triggered when a deep fetch is performed.
-    */
-   void signalFetchPerformed();
-   /**
     * @brief signalRefreshPRsCache Signal that refreshes PRs cache.
     */
    void signalRefreshPRsCache();
+
+   /**
+    * @brief Signal triggered when a merge with squash behavior has been requested. Since it involves a lot of changes
+    * at UI level this action is not performed here.
+    *
+    * @param origin The branch to merge from.
+    * @param destination The branch to merge into.
+    */
+   void mergeSqushRequested(const QString &origin, const QString &destination);
 
 public:
    /*!
@@ -81,7 +80,8 @@ public:
     \param git The git object to perform Git operations.
     \param parent The parent widget if needed.
    */
-   explicit BranchTreeWidget(const QSharedPointer<GitBase> &git, QWidget *parent = nullptr);
+   explicit BranchTreeWidget(const QSharedPointer<GitCache> &cache, const QSharedPointer<GitBase> &git,
+                             QWidget *parent = nullptr);
    /*!
     \brief Configures the widget to be the local branches widget.
 
@@ -94,10 +94,9 @@ public:
     */
    void reloadCurrentBranchLink() const;
 
-   int focusOnBranch(const QString &branch, int lastPos = -1);
-
 private:
    bool mLocal = false;
+   QSharedPointer<GitCache> mCache;
    QSharedPointer<GitBase> mGit;
 
    /*!
@@ -124,5 +123,5 @@ private:
     */
    void onSelectionChanged();
 
-   QList<QTreeWidgetItem *> findChildItem(const QString &text) const;
+   void showDeleteFolderMenu(QTreeWidgetItem *item, const QPoint &pos);
 };

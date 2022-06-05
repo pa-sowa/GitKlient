@@ -1,11 +1,10 @@
 #pragma once
 
-#include <JenkinsJobInfo.h>
 #include <IFetcher.h>
+#include <JenkinsJobInfo.h>
 
 #include <QFrame>
 
-class CheckBox;
 class QVBoxLayout;
 class QHBoxLayout;
 class QButtonGroup;
@@ -35,6 +34,7 @@ public:
 private:
    IFetcher::Config mConfig;
    ButtonLink *mName = nullptr;
+   ButtonLink *mRefresh = nullptr;
    ButtonLink *mUrl = nullptr;
    QPushButton *mBuild = nullptr;
    QFrame *mScrollFrame = nullptr;
@@ -60,5 +60,6 @@ private:
    void downloadArtifact(const JenkinsJobBuildInfo::Artifact &artifact, int number);
    void storeArtifact(const QString &fileName, int buildNumber);
    void reloadJobInfo();
+   void onJobInfoReceived(const JenkinsJobInfo &newInfo);
 };
 }

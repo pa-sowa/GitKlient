@@ -23,9 +23,9 @@
  ** Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  ***************************************************************************************/
 
+#include <QObject>
 #include <QSharedPointer>
 #include <QString>
-#include <QObject>
 
 #include <GitExecResult.h>
 
@@ -63,7 +63,9 @@ public:
    GitExecResult getRemoteForBranch(const QString &branch);
    GitExecResult getGitValue(const QString &key) const;
    QString getServerUrl() const;
+   QString getServerHost() const;
    QPair<QString, QString> getCurrentRepoAndOwner() const;
+   GitExecResult unset(const QString &key, bool isGlobal = false) const;
 
 private:
    QSharedPointer<GitBase> mGitBase;

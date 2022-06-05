@@ -1,15 +1,16 @@
 #include "BranchContextMenu.h"
 
-#include <GitQlientStyles.h>
 #include <BranchDlg.h>
-#include <GitBranches.h>
 #include <GitBase.h>
+#include <GitBranches.h>
+#include <GitCache.h>
+#include <GitConfig.h>
+#include <GitQlientStyles.h>
 #include <GitRemote.h>
 
 #include <QApplication>
-#include <QMessageBox>
-#include <QApplication>
 #include <QClipboard>
+#include <QMessageBox>
 
 #include <utility>
 
@@ -45,6 +46,9 @@ BranchContextMenu::BranchContextMenu(BranchContextMenuConfig config, QWidget *pa
    {
       const auto actionName = tr("Merge %1 into %2").arg(mConfig.branchSelected, mConfig.currentBranch);
       connect(addAction(actionName), &QAction::triggered, this, &BranchContextMenu::merge);
+
+      const auto mergeSquashAction = tr("Squash-merge %1 into %2").arg(mConfig.branchSelected, mConfig.currentBranch);
+      connect(addAction(mergeSquashAction), &QAction::triggered, this, &BranchContextMenu::mergeSquash);
    }
 
    addSeparator();
@@ -61,10 +65,10 @@ void BranchContextMenu::pull()
    QApplication::restoreOverrideCursor();
 
    if (ret.success)
-      emit signalBranchesUpdated();
+      emit fullReload();
    else
    {
-      const auto errorMsg = ret.output.toString();
+      const auto errorMsg = ret.output;
 
       if (errorMsg.contains("error: could not apply", Qt::CaseInsensitive)
           && errorMsg.contains("causing a conflict", Qt::CaseInsensitive))
@@ -92,10 +96,7 @@ void BranchContextMenu::fetch()
    QApplication::restoreOverrideCursor();
 
    if (ret)
-   {
-      emit signalFetchPerformed();
-      emit signalBranchesUpdated();
-   }
+      emit fullReload();
    else
       QMessageBox::critical(this, tr("Fetch failed"), tr("There were some problems while fetching. Please try again."));
 }
@@ -108,23 +109,36 @@ void BranchContextMenu::push()
        = mConfig.currentBranch == mConfig.branchSelected ? git->push() : git->pushBranch(mConfig.branchSelected);
    QApplication::restoreOverrideCursor();
 
-   if (ret.output.toString().contains("has no upstream branch"))
+   if (ret.output.contains("has no upstream branch"))
    {
-      BranchDlg dlg({ mConfig.branchSelected, BranchDlgMode::PUSH_UPSTREAM, mConfig.mGit });
-      const auto ret = dlg.exec();
-
-      if (ret == QDialog::Accepted)
-         emit signalBranchesUpdated();
+      BranchDlg dlg({ mConfig.branchSelected, BranchDlgMode::PUSH_UPSTREAM, mConfig.mCache, mConfig.mGit });
+      dlg.exec();
    }
    else if (ret.success)
-      emit signalBranchesUpdated();
+   {
+      QScopedPointer<GitConfig> git(new GitConfig(mConfig.mGit));
+      const auto remote = git->getRemoteForBranch(mConfig.branchSelected);
+
+      if (remote.success)
+      {
+         const auto oldSha = mConfig.mCache->getShaOfReference(
+             QString("%1/%2").arg(remote.output, mConfig.branchSelected), References::Type::RemoteBranches);
+         const auto sha = mConfig.mCache->getShaOfReference(mConfig.branchSelected, References::Type::LocalBranch);
+         mConfig.mCache->deleteReference(oldSha, References::Type::RemoteBranches,
+                                         QString("%1/%2").arg(remote.output, mConfig.branchSelected));
+         mConfig.mCache->insertReference(sha, References::Type::RemoteBranches,
+                                         QString("%1/%2").arg(remote.output, mConfig.branchSelected));
+         emit mConfig.mCache->signalCacheUpdated();
+         emit logReload();
+      }
+   }
    else
    {
       QMessageBox msgBox(QMessageBox::Critical, tr("Error while pushing"),
                          tr("There were problems during the push operation. Please, see the detailed description "
                             "for more information."),
                          QMessageBox::Ok, this);
-      msgBox.setDetailedText(ret.output.toString());
+      msgBox.setDetailedText(ret.output);
       msgBox.setStyleSheet(GitQlientStyles::getStyles());
       msgBox.exec();
    }
@@ -140,7 +154,7 @@ void BranchContextMenu::pushForce()
    if (ret.success)
    {
       emit signalRefreshPRsCache();
-      emit signalBranchesUpdated();
+      emit fullReload();
    }
    else
    {
@@ -148,7 +162,7 @@ void BranchContextMenu::pushForce()
                          tr("There were problems during the pull operation. Please, see the detailed description "
                             "for more information."),
                          QMessageBox::Ok, this);
-      msgBox.setDetailedText(ret.output.toString());
+      msgBox.setDetailedText(ret.output);
       msgBox.setStyleSheet(GitQlientStyles::getStyles());
       msgBox.exec();
    }
@@ -156,20 +170,14 @@ void BranchContextMenu::pushForce()
 
 void BranchContextMenu::createBranch()
 {
-   BranchDlg dlg({ mConfig.branchSelected, BranchDlgMode::CREATE, mConfig.mGit });
-   const auto ret = dlg.exec();
-
-   if (ret == QDialog::Accepted)
-      emit signalBranchesUpdated();
+   BranchDlg dlg({ mConfig.branchSelected, BranchDlgMode::CREATE, mConfig.mCache, mConfig.mGit });
+   dlg.exec();
 }
 
 void BranchContextMenu::createCheckoutBranch()
 {
-   BranchDlg dlg({ mConfig.branchSelected, BranchDlgMode::CREATE_CHECKOUT, mConfig.mGit });
-   const auto ret = dlg.exec();
-
-   if (ret == QDialog::Accepted)
-      emit signalBranchesUpdated();
+   BranchDlg dlg({ mConfig.branchSelected, BranchDlgMode::CREATE_CHECKOUT, mConfig.mCache, mConfig.mGit });
+   dlg.exec();
 }
 
 void BranchContextMenu::merge()
@@ -177,13 +185,15 @@ void BranchContextMenu::merge()
    emit signalMergeRequired(mConfig.currentBranch, mConfig.branchSelected);
 }
 
+void BranchContextMenu::mergeSquash()
+{
+   emit mergeSqushRequested(mConfig.currentBranch, mConfig.branchSelected);
+}
+
 void BranchContextMenu::rename()
 {
-   BranchDlg dlg({ mConfig.branchSelected, BranchDlgMode::RENAME, mConfig.mGit });
-   const auto ret = dlg.exec();
-
-   if (ret == QDialog::Accepted)
-      emit signalBranchesUpdated();
+   BranchDlg dlg({ mConfig.branchSelected, BranchDlgMode::RENAME, mConfig.mCache, mConfig.mGit });
+   dlg.exec();
 }
 
 void BranchContextMenu::deleteBranch()
@@ -198,6 +208,8 @@ void BranchContextMenu::deleteBranch()
 
       if (ret == QMessageBox::Ok)
       {
+         const auto type = mConfig.isLocal ? References::Type::LocalBranch : References::Type::RemoteBranches;
+         const auto sha = mConfig.mCache->getShaOfReference(mConfig.branchSelected, type);
          QScopedPointer<GitBranches> git(new GitBranches(mConfig.mGit));
          QApplication::setOverrideCursor(QCursor(Qt::WaitCursor));
          const auto ret2 = mConfig.isLocal ? git->removeLocalBranch(mConfig.branchSelected)
@@ -205,11 +217,15 @@ void BranchContextMenu::deleteBranch()
          QApplication::restoreOverrideCursor();
 
          if (ret2.success)
-            emit signalBranchesUpdated();
+         {
+            mConfig.mCache->deleteReference(sha, type, mConfig.branchSelected);
+            emit mConfig.mCache->signalCacheUpdated();
+            emit logReload();
+         }
          else
             QMessageBox::critical(
                 this, tr("Delete a branch failed"),
-                tr("There were some problems while deleting the branch:<br><br> %1").arg(ret2.output.toString()));
+                tr("There were some problems while deleting the branch:<br><br> %1").arg(ret2.output));
       }
    }
 }

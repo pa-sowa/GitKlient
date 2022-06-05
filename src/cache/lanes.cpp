@@ -20,7 +20,9 @@ void Lanes::init(const QString &expectedSha)
 void Lanes::clear()
 {
    typeVec.clear();
+   typeVec.squeeze();
    nextShaVec.clear();
+   nextShaVec.squeeze();
 }
 
 bool Lanes::isFork(const QString &sha, bool &isDiscontinuity)
@@ -167,11 +169,11 @@ void Lanes::changeActiveLane(const QString &sha)
    else
       t.setType(LaneType::NOT_ACTIVE);
 
-   int idx = findNextSha(sha, 0); // find first sha
+   int idx = findNextSha(sha, 0);
    if (idx != -1)
-      typeVec[idx].setType(LaneType::ACTIVE); // called before setBoundary()
+      typeVec[idx].setType(LaneType::ACTIVE);
    else
-      idx = add(LaneType::BRANCH, sha, activeLane); // new branch
+      idx = add(LaneType::BRANCH, sha, activeLane);
 
    activeLane = idx;
 }
@@ -203,7 +205,7 @@ void Lanes::afterFork()
          t.setType(LaneType::EMPTY);
 
       if (isNode(t))
-         t.setType(LaneType::ACTIVE); // boundary will be reset by changeActiveLane()
+         t.setType(LaneType::ACTIVE);
    }
 
    while (typeVec.last().equals(LaneType::EMPTY))
@@ -215,12 +217,15 @@ void Lanes::afterFork()
 
 bool Lanes::isBranch()
 {
-   return typeVec[activeLane].equals(LaneType::BRANCH);
+   if (typeVec.count() > activeLane)
+      return typeVec.at(activeLane).equals(LaneType::BRANCH);
+
+   return false;
 }
 
 void Lanes::afterBranch()
 {
-   typeVec[activeLane].setType(LaneType::ACTIVE); // TODO test with boundaries
+   typeVec[activeLane].setType(LaneType::ACTIVE);
 }
 
 void Lanes::nextParent(const QString &sha)
@@ -254,7 +259,6 @@ int Lanes::findType(const LaneType type, int pos)
 
 int Lanes::add(const LaneType type, const QString &next, int pos)
 {
-   // first check empty lanes starting from pos
    if (pos < typeVec.count())
    {
       pos = findType(LaneType::EMPTY, pos);
@@ -266,7 +270,6 @@ int Lanes::add(const LaneType type, const QString &next, int pos)
       }
    }
 
-   // if all lanes are occupied add a new lane
    typeVec.append(type);
    nextShaVec.append(next);
    return typeVec.count() - 1;

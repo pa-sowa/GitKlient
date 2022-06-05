@@ -1,9 +1,12 @@
 #include <AmendWidget.h>
 #include <ui_CommitChangesWidget.h>
 
+#include <GitBase.h>
 #include <GitCache.h>
+#include <GitHistory.h>
 #include <GitLocal.h>
 #include <GitQlientRole.h>
+#include <GitQlientStyles.h>
 #include <GitWip.h>
 #include <UnstagedMenu.h>
 
@@ -33,7 +36,19 @@ void AmendWidget::configure(const QString &sha)
    git->updateWip();
 
    const auto files = mCache->revisionFile(CommitInfo::ZERO_SHA, sha);
-   const auto amendFiles = mCache->revisionFile(sha, commit.parent(0));
+   auto amendFiles = mCache->revisionFile(sha, commit.firstParent());
+
+   if (!amendFiles)
+   {
+      QScopedPointer<GitHistory> git(new GitHistory(mGit));
+      const auto ret = git->getDiffFiles(mCurrentSha, commit.firstParent());
+
+      if (ret.success)
+      {
+         amendFiles = RevisionFiles(ret.output);
+         mCache->insertRevisionFiles(mCurrentSha, commit.firstParent(), amendFiles.value());
+      }
+   }
 
    if (mCurrentSha != sha)
    {
@@ -41,20 +56,23 @@ void AmendWidget::configure(const QString &sha)
 
       mCurrentSha = sha;
 
-      const auto author = commit.author().split("<");
+      const auto author = commit.author.split("<");
       ui->leAuthorName->setText(author.first());
       ui->leAuthorEmail->setText(author.last().mid(0, author.last().count() - 1));
-      ui->teDescription->setPlainText(commit.longLog().trimmed());
-      ui->leCommitTitle->setText(commit.shortLog());
+      ui->teDescription->setPlainText(commit.longLog.trimmed());
+      ui->leCommitTitle->setText(commit.shortLog);
 
       blockSignals(true);
-      mInternalCache.clear();
       ui->unstagedFilesList->clear();
       ui->stagedFilesList->clear();
+      mInternalCache.clear();
       blockSignals(false);
 
-      insertFiles(files, ui->unstagedFilesList);
-      insertFiles(amendFiles, ui->stagedFilesList);
+      if (files)
+         insertFiles(files.value(), ui->unstagedFilesList);
+
+      if (amendFiles)
+         insertFiles(amendFiles.value(), ui->stagedFilesList);
    }
    else
    {
@@ -62,20 +80,21 @@ void AmendWidget::configure(const QString &sha)
 
       prepareCache();
 
-      insertFiles(files, ui->unstagedFilesList);
+      if (files)
+         insertFiles(files.value(), ui->unstagedFilesList);
 
       clearCache();
 
-      insertFiles(amendFiles, ui->stagedFilesList);
+      if (amendFiles)
+         insertFiles(amendFiles.value(), ui->stagedFilesList);
    }
 
    ui->applyActionBtn->setEnabled(ui->stagedFilesList->count());
 }
 
-bool AmendWidget::commitChanges()
+void AmendWidget::commitChanges()
 {
    QStringList selFiles = getFiles();
-   auto done = false;
 
    if (!selFiles.isEmpty())
    {
@@ -92,19 +111,52 @@ bool AmendWidget::commitChanges()
          git->updateWip();
 
          const auto files = mCache->revisionFile(CommitInfo::ZERO_SHA, mCurrentSha);
-         const auto author = QString("%1<%2>").arg(ui->leAuthorName->text(), ui->leAuthorEmail->text());
 
-         QApplication::setOverrideCursor(QCursor(Qt::WaitCursor));
+         if (files)
+         {
+            const auto author = QString("%1<%2>").arg(ui->leAuthorName->text(), ui->leAuthorEmail->text());
+            QApplication::setOverrideCursor(QCursor(Qt::WaitCursor));
 
-         QScopedPointer<GitLocal> gitLocal(new GitLocal(mGit));
-         const auto ret = gitLocal->ammendCommit(selFiles, files, msg, author);
-         QApplication::restoreOverrideCursor();
+            QScopedPointer<GitLocal> gitLocal(new GitLocal(mGit));
+            const auto ret = gitLocal->ammendCommit(selFiles, files.value(), msg, author);
+            QApplication::restoreOverrideCursor();
 
-         emit signalChangesCommitted(ret.success);
+            emit logReload();
 
-         done = true;
+            if (ret.success)
+            {
+               const auto newSha = mGit->getLastCommit().output.trimmed();
+               auto commit = mCache->commitInfo(mCurrentSha);
+               const auto oldSha = commit.sha;
+               commit.sha = newSha;
+               commit.committer = author;
+               commit.author = author;
+
+               const auto log = msg.split("\n\n");
+               commit.shortLog = log.constFirst();
+               commit.longLog = log.constLast();
+
+               mCache->updateCommit(oldSha, std::move(commit));
+
+               QScopedPointer<GitHistory> git(new GitHistory(mGit));
+               const auto ret = git->getDiffFiles(mCurrentSha, commit.firstParent());
+
+               mCache->insertRevisionFiles(mCurrentSha, commit.firstParent(), RevisionFiles(ret.output));
+
+               emit changesCommitted();
+            }
+            else
+            {
+               QMessageBox msgBox(QMessageBox::Critical, tr("Error when amending"),
+                                  tr("There were problems during the commit "
+                                     "operation. Please, see the detailed "
+                                     "description for more information."),
+                                  QMessageBox::Ok, this);
+               msgBox.setDetailedText(ret.output);
+               msgBox.setStyleSheet(GitQlientStyles::getStyles());
+               msgBox.exec();
+            }
+         }
       }
    }
-
-   return done;
 }

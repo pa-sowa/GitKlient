@@ -4,6 +4,7 @@
 #include <DiffHelper.h>
 #include <GitCache.h>
 #include <GitHistory.h>
+#include <GitQlientSettings.h>
 #include <GitQlientStyles.h>
 
 #include <QLineEdit>
@@ -72,8 +73,11 @@ FullDiffWidget::FullDiffWidget(const QSharedPointer<GitBase> &git, QSharedPointe
 
    diffHighlighter = new DiffHighlighter(mDiffWidget->document());
 
+   GitQlientSettings settings;
+
    QFont font;
    font.setFamily(QString::fromUtf8("DejaVu Sans Mono"));
+   font.setPointSize(settings.globalValue("FileDiffView/FontSize", 8).toInt());
    mDiffWidget->setFont(font);
    mDiffWidget->setObjectName("textEditDiff");
    mDiffWidget->setUndoRedoEnabled(false);
@@ -117,9 +121,9 @@ bool FullDiffWidget::reload()
       QScopedPointer<GitHistory> git(new GitHistory(mGit));
       const auto ret = git->getCommitDiff(mCurrentSha, mPreviousSha);
 
-      if (ret.success && !ret.output.toString().isEmpty())
+      if (ret.success && !ret.output.isEmpty())
       {
-         loadDiff(mCurrentSha, mPreviousSha, ret.output.toString());
+         loadDiff(mCurrentSha, mPreviousSha, ret.output);
          return true;
       }
    }
@@ -191,4 +195,18 @@ void FullDiffWidget::loadDiff(const QString &sha, const QString &diffToSha, cons
    mPreviousSha = diffToSha;
 
    processData(diffData);
+}
+
+void FullDiffWidget::changeFontSize()
+{
+   GitQlientSettings settings;
+   const auto fontSize = settings.globalValue("FileDiffView/FontSize", 8).toInt();
+
+   auto font = mDiffWidget->font();
+   font.setPointSize(fontSize);
+
+   const auto cursor = mDiffWidget->textCursor();
+   mDiffWidget->selectAll();
+   mDiffWidget->setFont(font);
+   mDiffWidget->setTextCursor(cursor);
 }

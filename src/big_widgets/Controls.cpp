@@ -8,7 +8,6 @@
 #include <GitQlientStyles.h>
 #include <GitRemote.h>
 #include <GitStashes.h>
-#include <GitTags.h>
 #include <QLogger.h>
 
 #include <QApplication>
@@ -26,8 +25,8 @@ using namespace QLogger;
 
 Controls::Controls(const QSharedPointer<GitCache> &cache, const QSharedPointer<GitBase> &git, QWidget *parent)
    : QFrame(parent)
+   , mCache(cache)
    , mGit(git)
-   , mGitTags(new GitTags(mGit, cache))
    , mMergeWarning(new QPushButton(tr("WARNING: There is a merge pending to be committed! Click here to solve it.")))
    , mBtnGroup(new QButtonGroup())
 {
@@ -142,7 +141,7 @@ Controls::Controls(const QSharedPointer<GitCache> &cache, const QSharedPointer<G
    connect(mBlameAction, &QAction::triggered, this, &Controls::signalGoBlame);
    connect(mPullAction, &QAction::triggered, this, &Controls::pullCurrentBranch);
    connect(mPushAction, &QAction::triggered, this, &Controls::pushCurrentBranch);
-   connect(mRefreshAction, &QAction::triggered, this, [this]() { emit requestReload(true); });
+   connect(mRefreshAction, &QAction::triggered, this, &Controls::requestFullReload);
    connect(mMergeWarning, &QPushButton::clicked, this, &Controls::signalGoMerge);
    connect(mConfigAction, &QAction::triggered, this, &Controls::goConfig);
    connect(mBuildSystemAction, &QAction::triggered, this, &Controls::signalGoBuildSystem);
@@ -205,7 +204,7 @@ void Controls::enableButtons(bool enabled)
    if (enabled)
    {
       GitQlientSettings settings(mGit->getGitDir());
-      const auto isConfigured = settings.localValue("BuildSystemEanbled", false).toBool();
+      const auto isConfigured = settings.localValue("BuildSystemEnabled", false).toBool();
 
       mBuildSystemAction->setEnabled(isConfigured);
    }
@@ -220,19 +219,17 @@ void Controls::pullCurrentBranch()
    const auto ret = git->pull();
    QApplication::restoreOverrideCursor();
 
-   const auto msg = ret.output.toString();
-
    if (ret.success)
    {
-      if (msg.contains("merge conflict", Qt::CaseInsensitive))
+      if (ret.output.contains("merge conflict", Qt::CaseInsensitive))
          emit signalPullConflict();
       else
-         emit requestReload(true);
+         emit requestFullReload();
    }
    else
    {
-      if (msg.contains("error: could not apply", Qt::CaseInsensitive)
-          && msg.contains("causing a conflict", Qt::CaseInsensitive))
+      if (ret.output.contains("error: could not apply", Qt::CaseInsensitive)
+          && ret.output.contains("causing a conflict", Qt::CaseInsensitive))
       {
          emit signalPullConflict();
       }
@@ -242,7 +239,7 @@ void Controls::pullCurrentBranch()
                             QString(tr("There were problems during the pull operation. Please, see the detailed "
                                        "description for more information.")),
                             QMessageBox::Ok, this);
-         msgBox.setDetailedText(msg);
+         msgBox.setDetailedText(ret.output);
          msgBox.setStyleSheet(GitQlientStyles::getStyles());
          msgBox.exec();
       }
@@ -257,10 +254,7 @@ void Controls::fetchAll()
    QApplication::restoreOverrideCursor();
 
    if (ret)
-   {
-      mGitTags->getRemoteTags();
-      emit requestReload(true);
-   }
+      emit requestFullReload();
 }
 
 void Controls::activateMergeWarning()
@@ -290,22 +284,33 @@ void Controls::pushCurrentBranch()
    const auto ret = git->push();
    QApplication::restoreOverrideCursor();
 
-   if (ret.output.toString().contains("has no upstream branch"))
+   if (ret.output.contains("has no upstream branch"))
    {
       const auto currentBranch = mGit->getCurrentBranch();
-      BranchDlg dlg({ currentBranch, BranchDlgMode::PUSH_UPSTREAM, mGit });
+      BranchDlg dlg({ currentBranch, BranchDlgMode::PUSH_UPSTREAM, mCache, mGit });
       const auto dlgRet = dlg.exec();
 
       if (dlgRet == QDialog::Accepted)
-      {
          emit signalRefreshPRsCache();
-         emit requestReload(true);
-      }
    }
    else if (ret.success)
    {
-      emit signalRefreshPRsCache();
-      emit requestReload(true);
+      const auto currentBranch = mGit->getCurrentBranch();
+      QScopedPointer<GitConfig> git(new GitConfig(mGit));
+      const auto remote = git->getRemoteForBranch(currentBranch);
+
+      if (remote.success)
+      {
+         const auto oldSha = mCache->getShaOfReference(QString("%1/%2").arg(remote.output, currentBranch),
+                                                       References::Type::RemoteBranches);
+         const auto sha = mCache->getShaOfReference(currentBranch, References::Type::LocalBranch);
+         mCache->deleteReference(oldSha, References::Type::RemoteBranches,
+                                 QString("%1/%2").arg(remote.output, currentBranch));
+         mCache->insertReference(sha, References::Type::RemoteBranches,
+                                 QString("%1/%2").arg(remote.output, currentBranch));
+         emit mCache->signalCacheUpdated();
+         emit signalRefreshPRsCache();
+      }
    }
    else
    {
@@ -314,35 +319,7 @@ void Controls::pushCurrentBranch()
           QString(tr("There were problems during the push operation. Please, see the detailed description "
                      "for more information.")),
           QMessageBox::Ok, this);
-      msgBox.setDetailedText(ret.output.toString());
-      msgBox.setStyleSheet(GitQlientStyles::getStyles());
-      msgBox.exec();
-   }
-}
-
-void Controls::stashCurrentWork()
-{
-   QScopedPointer<GitStashes> git(new GitStashes(mGit));
-   const auto ret = git->stash();
-
-   if (ret.success)
-      emit requestReload(false);
-}
-
-void Controls::popStashedWork()
-{
-   QScopedPointer<GitStashes> git(new GitStashes(mGit));
-   const auto ret = git->pop();
-
-   if (ret.success)
-      emit requestReload(false);
-   else
-   {
-      QMessageBox msgBox(QMessageBox::Critical, tr("Error while popping a stash"),
-                         tr("There were problems during the stash pop operation. Please, see the detailed "
-                            "description for more information."),
-                         QMessageBox::Ok, this);
-      msgBox.setDetailedText(ret.output.toString());
+      msgBox.setDetailedText(ret.output);
       msgBox.setStyleSheet(GitQlientStyles::getStyles());
       msgBox.exec();
    }
@@ -356,14 +333,15 @@ void Controls::pruneBranches()
    QApplication::restoreOverrideCursor();
 
    if (ret.success)
-      emit requestReload(true);
+      emit requestReferencesReload();
 }
 
 QAction *Controls::createGitPlatformAction()
 {
-   GitConfig gitConfig(mGit);
-   const auto remoteUrl = gitConfig.getServerUrl();
-   QString iconPath;
+
+   QScopedPointer<GitConfig> gitConfig(new GitConfig(mGit));
+   const auto remoteUrl = gitConfig->getServerHost();
+   QIcon gitPlatformIcon;
    QString name;
    QString prName;
    auto add = false;
@@ -372,7 +350,7 @@ QAction *Controls::createGitPlatformAction()
    {
       add = true;
 
-      iconPath = ":/icons/github";
+      gitPlatformIcon = QIcon(":/icons/github");
       name = "GitHub";
       prName = tr("Pull Request");
    }
@@ -380,7 +358,7 @@ QAction *Controls::createGitPlatformAction()
    {
       add = true;
 
-      iconPath = ":/icons/gitlab";
+      gitPlatformIcon = QIcon(":/icons/gitlab");
       name = "GitLab";
       prName = tr("Merge Request");
    }
@@ -391,7 +369,7 @@ QAction *Controls::createGitPlatformAction()
       action->setText(name);
       action->setToolTip(name);
       action->setCheckable(true);
-      action->setIcon(QIcon(iconPath));
+      action->setIcon(QIcon(gitPlatformIcon));
       connect(action, &QAction::triggered, this, &Controls::signalGoServer);
       return action;
    }
@@ -404,7 +382,7 @@ QAction *Controls::createGitPlatformAction()
 void Controls::configBuildSystemButton()
 {
    GitQlientSettings settings(mGit->getGitDir());
-   const auto isConfigured = settings.localValue("BuildSystemEanbled", false).toBool();
+   const auto isConfigured = settings.localValue("BuildSystemEnabled", false).toBool();
    mBuildSystemAction->setEnabled(isConfigured);
 
    if (!isConfigured)

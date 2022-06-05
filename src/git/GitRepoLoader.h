@@ -30,10 +30,11 @@
 #include <QSharedPointer>
 #include <QVector>
 
+struct WipRevisionInfo;
 class GitBase;
 class GitCache;
-struct WipRevisionInfo;
 class GitQlientSettings;
+class GitTags;
 
 class GitRepoLoader : public QObject
 {
@@ -45,28 +46,31 @@ signals:
    void cancelAllProcesses(QPrivateSignal);
 
 public slots:
-   bool load(bool refreshReferences);
+   void loadLogHistory();
+   void loadReferences();
+   void loadAll();
 
 public:
    explicit GitRepoLoader(QSharedPointer<GitBase> gitBase, QSharedPointer<GitCache> cache,
                           const QSharedPointer<GitQlientSettings> &settings, QObject *parent = nullptr);
    void cancelAll();
    void setShowAll(bool showAll = true) { mShowAll = showAll; }
-   bool load();
 
 private:
    bool mShowAll = true;
    bool mLocked = false;
    bool mRefreshReferences = true;
+   int mSteps = 0;
    QSharedPointer<GitBase> mGitBase;
    QSharedPointer<GitCache> mRevCache;
    QSharedPointer<GitQlientSettings> mSettings;
+   QSharedPointer<GitTags> mGitTags;
 
    bool configureRepoDirectory();
-   void loadReferences();
+   void requestReferences();
+   void processReferences(QByteArray ba);
    void requestRevisions();
-   void processRevision(QByteArray ba);
-   QList<CommitInfo> processUnsignedLog(QByteArray &log, QList<QPair<QString, QString>> &subtrees);
-   QList<CommitInfo> processSignedLog(QByteArray &log, QList<QPair<QString, QString>> &subtrees) const;
-   CommitInfo parseCommitData(QByteArray &commitData, bool &isSubtree) const;
+   void processRevisions(QByteArray ba);
+   QVector<CommitInfo> processUnsignedLog(QByteArray &log) const;
+   QVector<CommitInfo> processSignedLog(QByteArray &log) const;
 };

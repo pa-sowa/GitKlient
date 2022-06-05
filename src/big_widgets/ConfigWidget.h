@@ -1,12 +1,13 @@
 #pragma once
 
-#include <QWidget>
 #include <QMap>
+#include <QWidget>
 
 class GitBase;
 class QTimer;
 class FileEditor;
 class QPushButton;
+class QAbstractButton;
 
 namespace Ui
 {
@@ -19,9 +20,10 @@ class ConfigWidget : public QWidget
 
 signals:
    void reloadView();
+   void reloadDiffFont();
    void buildSystemConfigured(bool configured);
    void commitTitleMaxLenghtChanged();
-   void panelsVisibilityChaned();
+   void panelsVisibilityChanged();
 
 public:
    explicit ConfigWidget(const QSharedPointer<GitBase> &git, QWidget *parent = nullptr);
@@ -36,14 +38,18 @@ private:
    bool mShowResetMsg = false;
    QTimer *mFeedbackTimer = nullptr;
    QPushButton *mSave = nullptr;
-   QMap<int, FileEditor *> mEditors;
+   FileEditor *mLocalGit = nullptr;
+   FileEditor *mGlobalGit = nullptr;
 
    void clearCache();
    void calculateCacheSize();
    void toggleBsAccesInfo();
    void enableWidgets();
    void saveFile();
+   void showCredentialsDlg();
 
 private slots:
    void saveConfig();
+   void onCredentialsOptionChanged(QAbstractButton *button);
+   void onPullStrategyChanged(int index);
 };

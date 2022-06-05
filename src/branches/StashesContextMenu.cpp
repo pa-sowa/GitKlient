@@ -1,8 +1,8 @@
 #include "StashesContextMenu.h"
 
 #include <BranchDlg.h>
-#include <GitStashes.h>
 #include <GitQlientStyles.h>
+#include <GitStashes.h>
 
 #include <QMessageBox>
 
@@ -20,7 +20,7 @@ StashesContextMenu::StashesContextMenu(const QSharedPointer<GitBase> &git, const
 
 void StashesContextMenu::branch()
 {
-   BranchDlg dlg({ mStashId, BranchDlgMode::STASH_BRANCH, mGit });
+   BranchDlg dlg({ mStashId, BranchDlgMode::STASH_BRANCH, nullptr, mGit });
    const auto ret = dlg.exec();
 
    if (ret == QDialog::Accepted)
@@ -40,7 +40,7 @@ void StashesContextMenu::drop()
                          tr("There were problems during the stash drop operation. Please, see the detailed "
                             "description for more information."),
                          QMessageBox::Ok, this);
-      msgBox.setDetailedText(ret.output.toString());
+      msgBox.setDetailedText(ret.output);
       msgBox.setStyleSheet(GitQlientStyles::getStyles());
       msgBox.exec();
    }
@@ -59,7 +59,7 @@ void StashesContextMenu::clear()
                          tr("There were problems during the branch stash operation. Please, see the detailed "
                             "description for more information."),
                          QMessageBox::Ok, this);
-      msgBox.setDetailedText(ret.output.toString());
+      msgBox.setDetailedText(ret.output);
       msgBox.setStyleSheet(GitQlientStyles::getStyles());
       msgBox.exec();
    }

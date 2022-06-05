@@ -38,6 +38,19 @@ GitExecResult GitLocal::stageFile(const QString &fileName) const
    return ret;
 }
 
+GitExecResult GitLocal::removeFile(const QString &fileName) const
+{
+   QLog_Debug("Git", QString("Removing file: {%1}").arg(fileName));
+
+   const auto cmd = QString("git rm %1").arg(fileName);
+
+   QLog_Trace("Git", QString("Removing file: {%1}").arg(cmd));
+
+   const auto ret = mGitBase->run(cmd);
+
+   return ret;
+}
+
 bool GitLocal::isInCherryPickMerge() const
 {
    QFile cherrypickHead(QString("%1/CHERRY_PICK_HEAD").arg(mGitBase->getGitDir()));
@@ -71,11 +84,16 @@ GitExecResult GitLocal::cherryPickAbort() const
    return ret;
 }
 
-GitExecResult GitLocal::cherryPickContinue() const
+GitExecResult GitLocal::cherryPickContinue(const QString &msg) const
 {
    QLog_Debug("Git", QString("Applying cherryPick"));
 
-   const auto cmd = QString("git cherry-pick --continue");
+   QString cmd;
+
+   if (msg.isEmpty())
+      cmd = QString("git cherry-pick --continue");
+   else
+      cmd = QString("git commit -m \"%1\"").arg(msg);
 
    QLog_Trace("Git", QString("Applying cherryPick: {%1}").arg(cmd));
 
@@ -163,15 +181,33 @@ bool GitLocal::resetCommit(const QString &sha, CommitResetType type)
          break;
    }
 
-   QLog_Debug("Git", QString("Reseting commit: {%1} type {%2}").arg(sha, typeStr));
+   QLog_Debug("Git", QString("Resetting commit: {%1} type {%2}").arg(sha, typeStr));
 
    const auto cmd = QString("git reset --%1 %2").arg(typeStr, sha);
 
-   QLog_Trace("Git", QString("Reseting commit: {%1}").arg(cmd));
+   QLog_Trace("Git", QString("Resetting commit: {%1}").arg(cmd));
 
    const auto ret = mGitBase->run(cmd);
 
    return ret.success;
+}
+
+GitExecResult GitLocal::commit(const QString &msg) const
+{
+   QLog_Debug("Git", QString("Commit changes"));
+
+   const auto cmd = QString("git commit -m \"%1\"").arg(msg);
+   const auto ret = mGitBase->run(cmd);
+
+   return ret;
+}
+
+GitExecResult GitLocal::ammend(const QString &msg) const
+{
+   QLog_Debug("Git", QString("Amend message"));
+
+   const auto cmd = QString("git commit --amend -m \"%1\"").arg(msg);
+   return mGitBase->run(cmd);
 }
 
 GitExecResult GitLocal::commitFiles(QStringList &selFiles, const RevisionFiles &allCommitFiles,
@@ -197,7 +233,10 @@ GitExecResult GitLocal::commitFiles(QStringList &selFiles, const RevisionFiles &
 
    QLog_Trace("Git", QString("Committing files: {%1}").arg(cmd));
 
-   const auto ret = mGitBase->run(cmd);
+   auto ret = mGitBase->run(cmd);
+
+   if (ret.output.startsWith("On branch"))
+      ret.output = false;
 
    return ret;
 }

@@ -1,10 +1,10 @@
 #pragma once
 
-#include <QWidget>
 #include <QMap>
+#include <QWidget>
 
-#include <JenkinsViewInfo.h>
 #include <IFetcher.h>
+#include <JenkinsViewInfo.h>
 
 class GitBase;
 class QStackedLayout;
@@ -12,6 +12,7 @@ class QButtonGroup;
 class QHBoxLayout;
 class QVBoxLayout;
 class QTimer;
+class GitQlientSettings;
 
 namespace Jenkins
 {
@@ -28,13 +29,12 @@ signals:
    void gotoBranch(const QString &branchName);
 
 public:
-   JenkinsWidget(const QSharedPointer<GitBase> &git, QWidget *parent = nullptr);
+   JenkinsWidget(const QSharedPointer<GitQlientSettings> &settings, QWidget *parent = nullptr);
    ~JenkinsWidget() override;
 
    void reload() const;
 
 private:
-   QSharedPointer<GitBase> mGit;
    IFetcher::Config mConfig;
    QStackedLayout *mStackedLayout = nullptr;
    RepoFetcher *mRepoFetcher = nullptr;

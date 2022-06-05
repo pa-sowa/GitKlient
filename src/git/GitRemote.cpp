@@ -23,7 +23,7 @@ GitExecResult GitRemote::pushBranch(const QString &branchName, bool force)
 
    if (ret.success)
    {
-      const auto remote = ret.output.toString().isEmpty() ? QString("origin") : ret.output.toString();
+      const auto remote = ret.output.isEmpty() ? QString("origin") : ret.output;
       ret = mGitBase->run(QString("git push %1 %2 %3").arg(remote, branchName, force ? QString("--force") : QString()));
    }
 
@@ -47,14 +47,14 @@ GitExecResult GitRemote::pushCommit(const QString &sha, const QString &remoteBra
    const auto remote = gitConfig->getRemoteForBranch(remoteBranch);
 
    return mGitBase->run(QString("git push %1 %2:refs/heads/%3")
-                            .arg(remote.success ? remote.output.toString() : QString("origin"), sha, remoteBranch));
+                            .arg(remote.success ? remote.output : QString("origin"), sha, remoteBranch));
 }
 
 GitExecResult GitRemote::pull()
 {
    QLog_Debug("Git", QString("Executing pull"));
 
-   auto ret = mGitBase->run("git pull --ff-only");
+   auto ret = mGitBase->run("git pull");
 
    GitQlientSettings settings(mGitBase->getGitDir());
    const auto updateOnPull = settings.localValue("UpdateOnPull", true).toBool();

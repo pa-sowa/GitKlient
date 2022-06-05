@@ -32,8 +32,7 @@ class CommitHistoryView;
 class QLineEdit;
 class BranchesWidget;
 class QStackedWidget;
-class WipWidget;
-class AmendWidget;
+class CommitChangesWidget;
 class CommitInfoWidget;
 class RepositoryViewDelegate;
 class FullDiffWidget;
@@ -45,6 +44,7 @@ class GitServerCache;
 class QLabel;
 class GitQlientSettings;
 class QSplitter;
+struct GitExecResult;
 
 /*!
  \brief The HistoryWidget is responsible for showing the history of the repository. It is the first widget shown
@@ -65,17 +65,12 @@ class HistoryWidget : public QFrame
    Q_OBJECT
 
 signals:
-   /**
-    * @brief requestReload Signal triggered when the user forces a refresh of the repository data.
-    * @param full True if the refresh includes commits and references, otherwise it refreshes only commits.
-    */
-   void requestReload(bool full);
+   void fullReload();
 
-   /*!
-    \brief Signal triggered when GitQlientRepo needs to update the UI for the current repo.
+   void referencesReload();
 
-   */
-   void signalUpdateUi();
+   void logReload();
+
    /*!
     \brief Signal triggered when the user wants to see the diff of the selected SHA compared to its first parent.
 
@@ -88,11 +83,6 @@ signals:
     \param sha The list of SHAs to compare.
    */
    void signalOpenCompareDiff(const QStringList &sha);
-   /*!
-    \brief Signal triggered when the internal cache for the current repository needs to be updated.
-
-   */
-   void signalUpdateCache();
    /*!
     \brief Signal triggered when the user opens a new submodule. It is necessary to propagate this signal since is the
     GitQlient class the responsible of opening a new tab for the submodule.
@@ -112,9 +102,9 @@ signals:
    /*!
     \brief Signal triggered when changes are committed.
 
-    \param commited True if there was no error, false otherwise.
+    \param committed True if there was no error, false otherwise.
    */
-   void signalChangesCommitted(bool commited);
+   void changesCommitted();
    /*!
     \brief Signal triggered when the user wants to see the History & Blame for a specific file.
 
@@ -206,30 +196,14 @@ public:
 
     \param goToSha The SHA to show.
    */
-   void onCommitSelected(const QString &goToSha);
-   /*!
-    \brief Opens the AmendWidget.
+   void selectCommit(const QString &goToSha);
 
-    \param sha The commit SHA to amend.
-   */
-   void onAmendCommit(const QString &sha);
-   /*!
-    \brief Gets the current SHA.
-
-    \return QString The current SHA.
-   */
-   QString getCurrentSha() const;
    /*!
     \brief Reloads the history model of the repository graph view when it finishes the loading process.
 
     \param totalCommits The new total of commits to show in the graph.
    */
-   void onNewRevisions(int totalCommits);
-
-   /**
-    * @brief updateConfig Updates the informative panel.
-    */
-   void updateConfig();
+   void updateGraphView(int totalCommits);
 
    /**
     * @brief onCommitTitleMaxLenghtChanged Changes the maximum length of the commit title.
@@ -240,6 +214,11 @@ public:
     * @brief onPanelsVisibilityChaned Reloads the visibility configuration of the panels in the BranchesWidget.
     */
    void onPanelsVisibilityChanged();
+
+   /**
+    * @brief onDiffFontSizeChanged Reloads the diff widgets with the new font size stored in the settings.
+    */
+   void onDiffFontSizeChanged();
 
 protected:
    void keyPressEvent(QKeyEvent *event) override;
@@ -263,8 +242,8 @@ private:
    QLineEdit *mSearchInput = nullptr;
    QStackedWidget *mCommitStackedWidget = nullptr;
    QStackedWidget *mCenterStackedWidget = nullptr;
-   WipWidget *mWipWidget = nullptr;
-   AmendWidget *mAmendWidget = nullptr;
+   CommitChangesWidget *mWipWidget = nullptr;
+   CommitChangesWidget *mAmendWidget = nullptr;
    CommitInfoWidget *mCommitInfoWidget = nullptr;
    QCheckBox *mChShowAllBranches = nullptr;
    RepositoryViewDelegate *mItemDelegate = nullptr;
@@ -302,11 +281,14 @@ private:
     \param showAll True to show all branches, false to show only the current branch.
    */
    void onShowAllUpdated(bool showAll);
-   /*!
-    \brief Updates the visible widgets when a different branch to the former one is checked out.
 
+   /*!
+    \brief Opens the AmendWidget.
+
+    \param sha The commit SHA to amend.
    */
-   void onBranchCheckout();
+   void onAmendCommit(const QString &sha);
+
    /*!
     \brief Tries to perform the git merge operation from \p branchToMerge into the \p current. If there are conflicts
     the GitQlientRepo class is notified to take actions.
@@ -315,6 +297,16 @@ private:
     \param branchToMerge The branch to merge from.
    */
    void mergeBranch(const QString &current, const QString &branchToMerge);
+
+   /**
+    * @brief mergeSquashBranch Tries to perform the git merge operation squashing all commits from \p branchToMerge into
+    the \p current. If there are conflicts the GitQlientRepo class is notified to take actions.
+    * @param current The current branch
+    * @param branchToMerge The branch to merge from
+    */
+   void mergeSquashBranch(const QString &current, const QString &branchToMerge);
+
+   void processMergeResponse(const GitExecResult &ret);
 
    /**
     * @brief endEditFile Closes the file diff view.
@@ -347,7 +339,11 @@ private:
     * @param sha The base commit SHA.
     * @param parentSha The commit SHA to compare with.
     */
-   void showFullDiff();
+   void onOpenFullDiff(const QString &sha);
 
    void rearrangeSplittrer(bool minimalActive);
+
+   void cleanCommitPanels();
+
+   void onRevertedChanges();
 };

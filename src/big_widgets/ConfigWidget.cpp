@@ -6,6 +6,9 @@
 #include <GitQlientSettings.h>
 #include <QLogger.h>
 
+#include <CredentialsDlg.h>
+#include <GitConfig.h>
+#include <GitCredentials.h>
 #include <QDir>
 #include <QFileInfo>
 #include <QMessageBox>
@@ -62,19 +65,17 @@ ConfigWidget::ConfigWidget(const QSharedPointer<GitBase> &git, QWidget *parent)
    const auto localGitLayout = new QVBoxLayout(ui->localGit);
    localGitLayout->setContentsMargins(QMargins());
 
-   const auto localGit = new FileEditor(false, this);
-   localGit->editFile(mGit->getGitDir().append("/config"));
-   localGitLayout->addWidget(localGit);
-   mEditors.insert(0, localGit);
+   mLocalGit = new FileEditor(false, this);
+   mLocalGit->editFile(mGit->getGitDir().append("/config"));
+   localGitLayout->addWidget(mLocalGit);
 
    const auto globalGitLayout = new QVBoxLayout(ui->globalGit);
    globalGitLayout->setContentsMargins(QMargins());
 
-   const auto globalGit = new FileEditor(false, this);
-   globalGit->editFile(
+   mGlobalGit = new FileEditor(false, this);
+   mGlobalGit->editFile(
        QString("%1/%2").arg(QStandardPaths::writableLocation(QStandardPaths::HomeLocation), ".gitconfig"));
-   globalGitLayout->addWidget(globalGit);
-   mEditors.insert(1, globalGit);
+   globalGitLayout->addWidget(mGlobalGit);
 
    GitQlientSettings settings(mGit->getGitDir());
 
@@ -85,6 +86,7 @@ ConfigWidget::ConfigWidget(const QSharedPointer<GitBase> &git, QWidget *parent)
    ui->chDisableLogs->setChecked(settings.globalValue("logsDisabled", true).toBool());
    ui->cbLogLevel->setCurrentIndex(settings.globalValue("logsLevel", static_cast<int>(LogLevel::Warning)).toInt());
    ui->spCommitTitleLength->setValue(settings.globalValue("commitTitleMaxLength", 50).toInt());
+   ui->sbEditorFontSize->setValue(settings.globalValue("FileDiffView/FontSize", 8).toInt());
 
    const auto originalStyles = settings.globalValue("colorSchema", "dark").toString();
    ui->cbStyle->setCurrentText(originalStyles);
@@ -106,14 +108,13 @@ ConfigWidget::ConfigWidget(const QSharedPointer<GitBase> &git, QWidget *parent)
    ui->tabWidget->setCurrentIndex(0);
    connect(ui->pbClearCache, &ButtonLink::clicked, this, &ConfigWidget::clearCache);
 
-   ui->cbPomodoroEnabled->setChecked(settings.localValue("Pomodoro/Enabled", true).toBool());
-
    ui->cbStash->setChecked(settings.localValue("StashesHeader", true).toBool());
    ui->cbSubmodule->setChecked(settings.localValue("SubmodulesHeader", true).toBool());
    ui->cbSubtree->setChecked(settings.localValue("SubtreeHeader", true).toBool());
+   ui->cbDeleteFolder->setChecked(settings.localValue("DeleteRemoteFolder", false).toBool());
 
    // Build System configuration
-   const auto isConfigured = settings.localValue("BuildSystemEanbled", false).toBool();
+   const auto isConfigured = settings.localValue("BuildSystemEnabled", false).toBool();
    ui->chBoxBuildSystem->setChecked(isConfigured);
    connect(ui->chBoxBuildSystem, &QCheckBox::stateChanged, this, &ConfigWidget::toggleBsAccesInfo);
 
@@ -135,12 +136,37 @@ ConfigWidget::ConfigWidget(const QSharedPointer<GitBase> &git, QWidget *parent)
       ui->leBsToken->setText(token);
    }
 
+   QScopedPointer<GitConfig> gitConfig(new GitConfig(mGit));
+
+   const auto url = gitConfig->getServerUrl();
+   ui->credentialsFrames->setVisible(url.startsWith("https"));
+
+   const auto mergeStrategyFF = gitConfig->getGitValue("pull.ff").output;
+   const auto mergeStrategyRebase = gitConfig->getGitValue("pull.rebase").output;
+
+   if (mergeStrategyFF.isEmpty())
+   {
+      if (mergeStrategyRebase.isEmpty() || mergeStrategyRebase.toLower().contains("false"))
+         ui->cbPullStrategy->setCurrentIndex(0);
+      else if (mergeStrategyRebase.toLower().contains("true"))
+         ui->cbPullStrategy->setCurrentIndex(1);
+   }
+   else if (mergeStrategyFF.toLower().contains("true"))
+      ui->cbPullStrategy->setCurrentIndex(2);
+
+   connect(ui->cbPullStrategy, SIGNAL(currentIndexChanged(int)), this, SLOT(onPullStrategyChanged(int)));
+
+   connect(ui->buttonGroup, SIGNAL(buttonClicked(QAbstractButton *)), this,
+           SLOT(onCredentialsOptionChanged(QAbstractButton *)));
+   connect(ui->pbAddCredentials, &QPushButton::clicked, this, &ConfigWidget::showCredentialsDlg);
+
    // Connects for automatic save
    connect(ui->chDevMode, &QCheckBox::stateChanged, this, &ConfigWidget::enableWidgets);
    connect(ui->chDisableLogs, &QCheckBox::stateChanged, this, &ConfigWidget::saveConfig);
    connect(ui->cbLogLevel, SIGNAL(currentIndexChanged(int)), this, SLOT(saveConfig()));
    connect(ui->leGitPath, &QLineEdit::editingFinished, this, &ConfigWidget::saveConfig);
    connect(ui->spCommitTitleLength, SIGNAL(valueChanged(int)), this, SLOT(saveConfig()));
+   connect(ui->sbEditorFontSize, SIGNAL(valueChanged(int)), this, SLOT(saveConfig()));
    connect(ui->cbTranslations, SIGNAL(currentIndexChanged(int)), this, SLOT(saveConfig()));
    connect(ui->sbMaxCommits, SIGNAL(valueChanged(int)), this, SLOT(saveConfig()));
    connect(ui->cbLogOrder, SIGNAL(currentIndexChanged(int)), this, SLOT(saveConfig()));
@@ -148,10 +174,10 @@ ConfigWidget::ConfigWidget(const QSharedPointer<GitBase> &git, QWidget *parent)
    connect(ui->pruneOnFetch, &QCheckBox::stateChanged, this, &ConfigWidget::saveConfig);
    connect(ui->updateOnPull, &QCheckBox::stateChanged, this, &ConfigWidget::saveConfig);
    connect(ui->clangFormat, &QCheckBox::stateChanged, this, &ConfigWidget::saveConfig);
-   connect(ui->cbPomodoroEnabled, &QCheckBox::stateChanged, this, &ConfigWidget::saveConfig);
    connect(ui->cbStash, &QCheckBox::stateChanged, this, &ConfigWidget::saveConfig);
    connect(ui->cbSubmodule, &QCheckBox::stateChanged, this, &ConfigWidget::saveConfig);
    connect(ui->cbSubtree, &QCheckBox::stateChanged, this, &ConfigWidget::saveConfig);
+   connect(ui->cbDeleteFolder, &QCheckBox::stateChanged, this, &ConfigWidget::saveConfig);
    connect(ui->leBsUrl, &QLineEdit::editingFinished, this, &ConfigWidget::saveConfig);
    connect(ui->leBsUser, &QLineEdit::editingFinished, this, &ConfigWidget::saveConfig);
    connect(ui->leBsToken, &QLineEdit::editingFinished, this, &ConfigWidget::saveConfig);
@@ -171,6 +197,32 @@ void ConfigWidget::onPanelsVisibilityChanged()
    ui->cbStash->setChecked(settings.localValue("StashesHeader", true).toBool());
    ui->cbSubmodule->setChecked(settings.localValue("SubmodulesHeader", true).toBool());
    ui->cbSubtree->setChecked(settings.localValue("SubtreeHeader", true).toBool());
+}
+
+void ConfigWidget::onCredentialsOptionChanged(QAbstractButton *button)
+{
+   ui->sbTimeout->setEnabled(button == ui->rbCache);
+}
+
+void ConfigWidget::onPullStrategyChanged(int index)
+{
+   QScopedPointer<GitConfig> gitConfig(new GitConfig(mGit));
+
+   switch (index)
+   {
+      case 0:
+         gitConfig->unset("pull.ff");
+         gitConfig->setLocalData("pull.rebase", "false");
+         break;
+      case 1:
+         gitConfig->unset("pull.ff");
+         gitConfig->setLocalData("pull.rebase", "true");
+         break;
+      case 2:
+         gitConfig->unset("pull.rebase");
+         gitConfig->setLocalData("pull.ff", "only");
+         break;
+   }
 }
 
 void ConfigWidget::clearCache()
@@ -223,9 +275,14 @@ void ConfigWidget::saveConfig()
    settings.setGlobalValue("logsDisabled", ui->chDisableLogs->isChecked());
    settings.setGlobalValue("logsLevel", ui->cbLogLevel->currentIndex());
    settings.setGlobalValue("commitTitleMaxLength", ui->spCommitTitleLength->value());
+   settings.setGlobalValue("FileDiffView/FontSize", ui->sbEditorFontSize->value());
    settings.setGlobalValue("colorSchema", ui->cbStyle->currentText());
    settings.setGlobalValue("gitLocation", ui->leGitPath->text());
 
+   mLocalGit->changeFontSize();
+   mGlobalGit->changeFontSize();
+
+   emit reloadDiffFont();
    emit commitTitleMaxLenghtChanged();
 
    if (mShowResetMsg)
@@ -258,10 +315,9 @@ void ConfigWidget::saveConfig()
    settings.setLocalValue("SubmodulesHeader", ui->cbSubmodule->isChecked());
    settings.setLocalValue("SubtreeHeader", ui->cbSubtree->isChecked());
 
-   emit panelsVisibilityChaned();
+   settings.setLocalValue("DeleteRemoteFolder", ui->cbDeleteFolder->isChecked());
 
-   /* POMODORO CONFIG */
-   settings.setLocalValue("Pomodoro/Enabled", ui->cbPomodoroEnabled->isChecked());
+   emit panelsVisibilityChanged();
 
    /* BUILD SYSTEM CONFIG */
 
@@ -272,7 +328,7 @@ void ConfigWidget::saveConfig()
 
    if (showBs && !bsUser.isEmpty() && !bsToken.isEmpty() && !bsUrl.isEmpty())
    {
-      settings.setLocalValue("BuildSystemEanbled", showBs);
+      settings.setLocalValue("BuildSystemEnabled", showBs);
       settings.setLocalValue("BuildSystemUrl", bsUrl);
       settings.setLocalValue("BuildSystemUser", bsUser);
       settings.setLocalValue("BuildSystemToken", bsToken);
@@ -280,7 +336,7 @@ void ConfigWidget::saveConfig()
    }
    else
    {
-      settings.setLocalValue("BuildSystemEanbled", false);
+      settings.setLocalValue("BuildSystemEnabled", false);
       emit buildSystemConfigured(false);
    }
 
@@ -300,5 +356,24 @@ void ConfigWidget::enableWidgets()
 void ConfigWidget::saveFile()
 {
    const auto id = ui->tabWidget->currentIndex();
-   mEditors.value(id)->saveFile();
+
+   if (id == 0)
+      mLocalGit->saveFile();
+   else
+      mGlobalGit->saveFile();
+}
+
+void ConfigWidget::showCredentialsDlg()
+{
+   // Store credentials if allowed and the user checked the box
+   if (ui->credentialsFrames->isVisible() && ui->chbCredentials->isChecked())
+   {
+      if (ui->rbCache->isChecked())
+         GitCredentials::configureCache(ui->sbTimeout->value(), mGit);
+      else
+      {
+         CredentialsDlg dlg(mGit, this);
+         dlg.exec();
+      }
+   }
 }

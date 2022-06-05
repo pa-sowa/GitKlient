@@ -1,7 +1,10 @@
 #include "BranchDlg.h"
 #include "ui_BranchDlg.h"
 
+#include <GitBase.h>
 #include <GitBranches.h>
+#include <GitCache.h>
+#include <GitConfig.h>
 #include <GitQlientStyles.h>
 #include <GitStashes.h>
 
@@ -85,38 +88,115 @@ void BranchDlg::accept()
       GitExecResult ret;
 
       if (mConfig.mDialogMode == BranchDlgMode::CREATE)
+      {
          ret = git->createBranchFromAnotherBranch(ui->leOldName->text(), ui->leNewName->text());
+
+         if (ret.success)
+         {
+            auto type = References::Type::LocalBranch;
+            auto sha = mConfig.mCache->getShaOfReference(ui->leOldName->text(), type);
+
+            if (sha.isEmpty())
+            {
+               type = References::Type::RemoteBranches;
+               sha = mConfig.mCache->getShaOfReference(ui->leOldName->text(), type);
+            }
+
+            if (!sha.isEmpty())
+            {
+               mConfig.mCache->insertReference(sha, type, ui->leNewName->text());
+               emit mConfig.mCache->signalCacheUpdated();
+            }
+         }
+      }
       else if (mConfig.mDialogMode == BranchDlgMode::CREATE_CHECKOUT)
+      {
          ret = git->checkoutNewLocalBranch(ui->leNewName->text());
+
+         if (ret.success)
+         {
+            mConfig.mCache->insertReference(mConfig.mGit->getLastCommit().output.trimmed(),
+                                            References::Type::LocalBranch, ui->leNewName->text());
+            emit mConfig.mCache->signalCacheUpdated();
+         }
+      }
       else if (mConfig.mDialogMode == BranchDlgMode::RENAME)
+      {
          ret = git->renameBranch(ui->leOldName->text(), ui->leNewName->text());
+
+         if (ret.success)
+         {
+            const auto type = References::Type::LocalBranch;
+            const auto sha = mConfig.mCache->getShaOfReference(ui->leOldName->text(), type);
+
+            mConfig.mCache->deleteReference(sha, type, ui->leOldName->text());
+            mConfig.mCache->insertReference(sha, type, ui->leNewName->text());
+            emit mConfig.mCache->signalCacheUpdated();
+         }
+      }
       else if (mConfig.mDialogMode == BranchDlgMode::CREATE_FROM_COMMIT)
+      {
          ret = git->createBranchAtCommit(ui->leOldName->text(), ui->leNewName->text());
+
+         if (ret.success)
+         {
+            mConfig.mCache->insertReference(ui->leOldName->text(), References::Type::LocalBranch,
+                                            ui->leNewName->text());
+            emit mConfig.mCache->signalCacheUpdated();
+         }
+      }
       else if (mConfig.mDialogMode == BranchDlgMode::CREATE_CHECKOUT_FROM_COMMIT)
+      {
          ret = git->checkoutBranchFromCommit(ui->leOldName->text(), ui->leNewName->text());
+
+         if (ret.success)
+         {
+            mConfig.mCache->insertReference(ui->leOldName->text(), References::Type::LocalBranch,
+                                            ui->leNewName->text());
+            emit mConfig.mCache->signalCacheUpdated();
+         }
+      }
       else if (mConfig.mDialogMode == BranchDlgMode::STASH_BRANCH)
       {
          QScopedPointer<GitStashes> git(new GitStashes(mConfig.mGit));
          ret = git->stashBranch(ui->leOldName->text(), ui->leNewName->text());
       }
       else if (mConfig.mDialogMode == BranchDlgMode::PUSH_UPSTREAM)
+      {
          ret = git->pushUpstream(ui->leNewName->text());
+
+         if (ret.success)
+         {
+            QScopedPointer<GitConfig> git(new GitConfig(mConfig.mGit));
+            const auto remote = git->getRemoteForBranch(ui->leNewName->text());
+
+            if (remote.success)
+            {
+               const auto sha = mConfig.mCache->getShaOfReference(ui->leOldName->text(), References::Type::LocalBranch);
+               mConfig.mCache->insertReference(sha, References::Type::RemoteBranches,
+                                               QString("%1/%2").arg(remote.output, ui->leNewName->text()));
+               emit mConfig.mCache->signalCacheUpdated();
+            }
+         }
+      }
 
       QApplication::restoreOverrideCursor();
 
-      QDialog::accept();
-
       if (!ret.success)
       {
+         QDialog::reject();
+
          QMessageBox msgBox(
              QMessageBox::Critical, tr("Error on branch action!"),
              QString(tr("There were problems during the branch operation. Please, see the detailed description "
                         "for more information.")),
              QMessageBox::Ok, this);
-         msgBox.setDetailedText(ret.output.toString());
+         msgBox.setDetailedText(ret.output);
          msgBox.setStyleSheet(GitQlientStyles::getStyles());
          msgBox.exec();
       }
+      else
+         QDialog::accept();
    }
 }
 

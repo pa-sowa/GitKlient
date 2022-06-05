@@ -30,7 +30,7 @@ class QActionGroup;
 class QToolButton;
 class QPushButton;
 class GitBase;
-class GitTags;
+class GitCache;
 class GitCache;
 class QNetworkAccessManager;
 class QProgressBar;
@@ -103,13 +103,17 @@ signals:
    void signalRefreshPRsCache();
 
    /**
-    * @brief requestReload Signal triggered when the user forces a refresh of the repository data.
-    * @param full True if the refresh includes commits and references, otherwise it refreshes only commits.
+    * @brief requestReload Signal triggered when the user forces a full refresh of the repository data.
     */
-   void requestReload(bool full);
+   void requestFullReload();
 
    /**
-    * @brief goConfig Signal triggered when the user seleced the config view.
+    * @brief requestReload Signal triggered when the user forces a refresh of the references of the repository.
+    */
+   void requestReferencesReload();
+
+   /**
+    * @brief goConfig Signal triggered when the user selected the config view.
     */
    void goConfig();
 
@@ -174,8 +178,8 @@ public:
 
 private:
    QString mCurrentSha;
+   QSharedPointer<GitCache> mCache;
    QSharedPointer<GitBase> mGit;
-   QSharedPointer<GitTags> mGitTags;
    QPushButton *mMergeWarning = nullptr;
    QButtonGroup *mBtnGroup = nullptr;
    bool mGoGitServerView = false;
@@ -200,16 +204,6 @@ private:
 
    */
    void pushCurrentBranch();
-   /*!
-    \brief Stashes the current work.
-
-   */
-   void stashCurrentWork();
-   /*!
-    \brief Pops the latest stashed work in the current branch.
-
-   */
-   void popStashedWork();
    /*!
     \brief Prunes all branches, tags and stashes.
 

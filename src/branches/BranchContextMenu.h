@@ -26,6 +26,7 @@
 #include <QMenu>
 
 class GitBase;
+class GitCache;
 
 /*!
  \brief The BranchContextMenuConfig contains the necessary information to initialize the BranchContextMenu. It includes
@@ -37,6 +38,7 @@ struct BranchContextMenuConfig
    QString currentBranch;
    QString branchSelected;
    bool isLocal;
+   QSharedPointer<GitCache> mCache;
    QSharedPointer<GitBase> mGit;
 };
 
@@ -51,11 +53,9 @@ class BranchContextMenu : public QMenu
    Q_OBJECT
 
 signals:
-   /*!
-    \brief Signal triggered when the branches have been updated and the GitQlient UI needs a refresh.
+   void fullReload();
+   void logReload();
 
-   */
-   void signalBranchesUpdated();
    /*!
     \brief Signal triggered when a branch has been checked out.
 
@@ -75,13 +75,18 @@ signals:
    void signalPullConflict();
 
    /**
-    * @brief signalFetchPerformed Signal triggered when a deep fetch is performed.
-    */
-   void signalFetchPerformed();
-   /**
     * @brief signalRefreshPRsCache Signal that refreshes PRs cache.
     */
    void signalRefreshPRsCache();
+
+   /**
+    * @brief Signal triggered when a merge with squash behavior has been requested. Since it involves a lot of changes
+    * at UI level this action is not performed here.
+    *
+    * @param origin The branch to merge from.
+    * @param destination The branch to merge into.
+    */
+   void mergeSqushRequested(const QString &origin, const QString &destination);
 
 public:
    /*!
@@ -131,6 +136,8 @@ private:
 
    */
    void merge();
+
+   void mergeSquash();
    /*!
     \brief Renames the selected branch.
 
