@@ -447,7 +447,7 @@ void GitQlient::updateWindowTitle()
          const auto currentName = repoPath.split("/").last();
          const auto currentBranch = currentTab->currentBranch();
 
-         setWindowTitle(QString("GitQlient %1 - %2 (%3)").arg(VER, currentName, currentBranch));
+         setWindowTitle(QString("%1 (%2) - GitQlient %3").arg(currentName, currentBranch, VER));
       }
    }
 }
