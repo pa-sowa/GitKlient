@@ -146,7 +146,8 @@ GitQlientRepo::GitQlientRepo(const QSharedPointer<GitBase> &git, const QSharedPo
    connect(mHistoryWidget, &HistoryWidget::showPrDetailedView, this, &GitQlientRepo::showGitServerPrView);
 
    connect(mDiffWidget, &DiffWidget::signalShowFileHistory, this, &GitQlientRepo::showFileHistory);
-   connect(mDiffWidget, &DiffWidget::signalDiffEmpty, mControls, &Controls::disableDiff);
+   connect(mDiffWidget, &DiffWidget::signalDiffEmpty, mControls,
+           std::bind(&Controls::setDiffEnabled, mControls, false));
    connect(mDiffWidget, &DiffWidget::signalDiffEmpty, this, &GitQlientRepo::showPreviousView);
 
    connect(mBlameWidget, &BlameWidget::showFileDiff, this, &GitQlientRepo::loadFileDiff);
@@ -391,7 +392,7 @@ void GitQlientRepo::loadFileDiff(const QString &currentSha, const QString &previ
 
    if (loaded)
    {
-      mControls->enableDiff();
+      mControls->setDiffEnabled(true);
       showDiffView();
    }
 }
@@ -596,7 +597,7 @@ void GitQlientRepo::openCommitDiff(const QString currentSha)
 
    if (loaded)
    {
-      mControls->enableDiff();
+      mControls->setDiffEnabled(true);
 
       showDiffView();
    }
@@ -608,7 +609,7 @@ void GitQlientRepo::openCommitCompareDiff(const QStringList &shas)
 
    if (loaded)
    {
-      mControls->enableDiff();
+      mControls->setDiffEnabled(true);
 
       showDiffView();
    }

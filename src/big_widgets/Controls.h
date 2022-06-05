@@ -25,6 +25,8 @@
 
 #include <QFrame>
 
+class QAction;
+class QActionGroup;
 class QToolButton;
 class QPushButton;
 class GitBase;
@@ -32,10 +34,8 @@ class GitTags;
 class GitCache;
 class QNetworkAccessManager;
 class QProgressBar;
-class GitQlientUpdater;
 class QButtonGroup;
 class QHBoxLayout;
-class PomodoroButton;
 
 /*!
  \brief Enum used to configure the different views handled by the Controls widget.
@@ -161,15 +161,10 @@ public:
    */
    void disableMergeWarning();
    /*!
-    \brief Disables the diff button and view.
+    \brief Changed the enabled state of the diff button and view.
 
    */
-   void disableDiff();
-   /*!
-    \brief Enables the diff button and view.
-
-   */
-   void enableDiff();
+   void setDiffEnabled(bool enabled);
    /*!
     \brief Gets the current selected button/view.
 
@@ -181,21 +176,19 @@ private:
    QString mCurrentSha;
    QSharedPointer<GitBase> mGit;
    QSharedPointer<GitTags> mGitTags;
-   QToolButton *mHistory = nullptr;
-   QToolButton *mDiff = nullptr;
-   QToolButton *mBlame = nullptr;
-   QToolButton *mPullBtn = nullptr;
-   QToolButton *mPullOptions = nullptr;
-   QToolButton *mPushBtn = nullptr;
-   QToolButton *mRefreshBtn = nullptr;
-   QToolButton *mConfigBtn = nullptr;
-   QToolButton *mGitPlatform = nullptr;
-   QToolButton *mBuildSystem = nullptr;
-   QToolButton *mVersionCheck = nullptr;
    QPushButton *mMergeWarning = nullptr;
-   GitQlientUpdater *mUpdater = nullptr;
    QButtonGroup *mBtnGroup = nullptr;
    bool mGoGitServerView = false;
+   QAction *mHistoryAction = nullptr;
+   QAction *mDiffAction = nullptr;
+   QAction *mBlameAction = nullptr;
+   QAction *mPullAction = nullptr;
+   QAction *mPushAction = nullptr;
+   QAction *mRefreshAction = nullptr;
+   QAction *mConfigAction = nullptr;
+   QAction *mGitPlatformAction = nullptr;
+   QAction *mBuildSystemAction = nullptr;
+   QActionGroup *mActionGroup = nullptr;
 
    /*!
     \brief Pulls the current branch.
@@ -226,12 +219,10 @@ private:
    /**
     * @brief createGitPlatformButton Createst the git platform button if the user has enabled it.
     */
-   void createGitPlatformButton(QHBoxLayout *layout);
+   QAction *createGitPlatformAction();
 
    /**
     * @brief createBuildSystemButton Creates the build system platform button if the user has enabled it.
     */
    void configBuildSystemButton();
-
-   bool eventFilter(QObject *obj, QEvent *event);
 };
