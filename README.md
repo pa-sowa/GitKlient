@@ -1,21 +1,10 @@
-![GitQlient logo](https://github.com/francescmm/GitQlient/blob/master/src/resources/icons/GitQlientLogo96.png "GitQlient")
+![GitKlient logo](https://github.com/pa-sowa/GitKlient/blob/master/src/resources/icons/GitKlientLogo96.png "GitKlient")
 
-# GitQlient: Multi-platform Git client written with Qt
+# GitKlient: a Git GUI for KDE
 
-<table>
-  <tr>
-    <td>Linux & MacOS</td>
-    <td>Windows</td>
-  </tr>
-  <tr>
-    <td><a href="https://travis-ci.org/francescmm/GitQlient" target="_blank"><img src="https://travis-ci.org/francescmm/GitQlient.svg?branch=master"/></a></td>
-    <td><a href="https://ci.appveyor.com/project/francescmm/gitqlient/branch/master" target="_blank"><img src="https://ci.appveyor.com/api/projects/status/ihw50uwdiim952c0/branch/master"/></a></td>
-  </tr>
-</table>
+GitKlient is a Git client originally forked from [GitQlient](https://github.com/francescmm/GitQlient) and adapted to fit the KDE desktop environment.
 
-GitQlient, pronounced as git+client (/gɪtˈklaɪənt/) is a multi-platform Git client originally forked from QGit. Nowadays it goes beyond of just a fork and adds a lot of new functionality.
-
-![GitQlient main screen](/docs/assets/GitQlient.png)
+![GitKlient main screen](/docs/assets/GitKlient.png)
 
 ## Main features
 
@@ -31,60 +20,24 @@ Some of the major feature you can find are:
 8. GitHub/GitLab integration
 9. Embedded text editor with syntax highlight for C++
 
-For all the features take a look to the [Release Notes in the Wiki](https://github.com/francescmm/GitQlient/wiki).
+For all the features take a look to the [Release Notes in the Wiki](https://github.com/pa-sowa/GitKlient/wiki).
 
 ## User Manual
 
-Please, if you have any doubts about how to use it or you just want to know all you can do with GitQlient, take a look to [the user manual in here](https://francescmm.github.io/GitQlient).
+Please, if you have any doubts about how to use it or you just want to know all you can do with GitKlient, take a look at [the user manual of the original GitQlient](https://francescmm.github.io/GitKlient).
 
-It is planned to release for Linux, MacOs and Windows. However, take into account that the development environment is based on Linux and it will be the first platform released.
+## Translating GitKlient
 
-## How to install GitQlient
-
-### Linux
-
-#### AppImage
-
-GitQlient is offered in the form of AppImage. Although a big binary, it includes all the libraries needed to run. It is a portable multi-OS version so just download the versio you want from the [releases page](https://github.com/francescmm/GitQlient/releases) and execute it (make sure it has execution rights).
-
-#### RPM package for Fedora
-
-Package [available](https://src.fedoraproject.org/rpms/gitqlient) in official Fedora repos. To install, type the following command in the terminal:
-
-```
-sudo dnf install gitqlient
-```
-
-#### DEB package for Ubuntu
-
-For now there is no GitQlient in the official repos of Ubuntu or Debian. However, to install it via .deb package, go to the [releases page](https://github.com/francescmm/GitQlient/releases) and download the package from the version you want. Once you download it, you can install it using apt-get command as root.
-
-**Note:** This option is available only from GitQlient 1.4.0 (when this version is published).
-
-All L
-
-### Windows
-
-For Windows 10 there is a package provided on every release. It installs all the dependencies and creates an shortcut in the Desktop. From the [releases page](https://github.com/francescmm/GitQlient/releases), download the GitQlientInstaller-<version>.exe binary from the release you want to use.
-
-### MacOS
-
-For MacOS there is also a DMG package you can install as usual. Take into account that because of lack of resources this version is not tested.
-
-## Translating GitQlient
-
-GitQlient is using the translation system of Qt. That means that for every new language two files are needed: .ts and .qm. The first one is the text translation and the second one is a compiled file that GitQlient will load.
+GitKlient is using the translation system of Qt. That means that for every new language two files are needed: .ts and .qm. The first one is the text translation and the second one is a compiled file that GitKlient will load.
 
 To add a new translation, please generate those files and add them to the resources.qrc.
 
 For more information on [Qt translation system](https://doc.qt.io/qt-5/linguist-manager.html).
 
-### Building GitQlient
+### Building GitKlient
 
-In the [User Manual](https://francescmm.github.io/GitQlient/#appendix-b-build) you can find a whole section about building GitQlient and what dependencies you need.
+In the [User Manual](https://francescmm.github.io/GitKlient/#appendix-b-build) you can find a whole section about building GitKlient and what dependencies you need.
   
 ## Licenses
 
-Most of the icons on GitQlient are from Font Awesome. [The license states is GPL friendly](https://fontawesome.com/license/free). Those icons that are not from Font Awesome are custom made icons.
-
-The font used bt GitQlient is DejaVu Sans and DejaVu Sans Mono. It is a free font used by most of the Linux distros and [its license can be found on GitHub](https://github.com/dejavu-fonts/dejavu-fonts/blob/master/LICENSE).
+Most of the icons on GitKlient are from Font Awesome. [The license states is GPL friendly](https://fontawesome.com/license/free). Those icons that are not from Font Awesome are custom made icons.
