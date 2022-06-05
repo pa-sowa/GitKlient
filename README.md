@@ -4,7 +4,7 @@
 
 GitKlient is a Git client originally forked from [GitQlient](https://github.com/francescmm/GitQlient) and adapted to fit the KDE desktop environment.
 
-![GitKlient main screen](/docs/assets/GitKlient.png)
+![GitKlient main screen](/docs/assets/GitQlient.png)
 
 ## Main features
 
