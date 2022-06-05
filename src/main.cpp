@@ -30,7 +30,7 @@ int main(int argc, char *argv[])
       mainWin.setRepositories(repos);
       mainWin.show();
 
-      QTimer::singleShot(500, &mainWin, &GitQlient::restorePinnedRepos);
+      QTimer::singleShot(0, &mainWin, &GitQlient::restorePinnedRepos);
 
       return app.exec();
    }
