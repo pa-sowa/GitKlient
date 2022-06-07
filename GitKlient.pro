@@ -1,7 +1,7 @@
 #General stuff
 CONFIG += qt warn_on c++17 c++1z
 
-TARGET = gitqlient
+TARGET = gitklient
 QT += widgets core network webenginewidgets webchannel
 DEFINES += QT_DEPRECATED_WARNINGS
 
@@ -15,7 +15,7 @@ unix:!macos {
    target.path = $$PREFIX/bin
 
    application.path = $$PREFIX/share/applications
-   application.files = $$PWD/src/resources/gitqlient.desktop
+   application.files = $$PWD/src/resources/gitklient.desktop
    INSTALLS += application
 
    iconsvg.path = $$PREFIX/share/icons/hicolor/scalable/apps
@@ -86,7 +86,7 @@ macos{
    ICON = $$PWD/src/resources/icon.icns
 
    BUNDLE_FILENAME = $${TARGET}.app
-   DMG_FILENAME = "GitQlient-$$(VERSION).dmg"
+   DMG_FILENAME = "GitKlient-$$(VERSION).dmg"
 #Target for pretty DMG generation
    dmg.commands += echo "Generate DMG";
    dmg.commands += rm -f *.dmg && macdeployqt $$BUNDLE_FILENAME &&
@@ -98,7 +98,7 @@ macos{
     --window-size 600 450 \
     --icon-size 100 \
     --hdiutil-quiet \
-    --hide-extension "gitqlient.app" \
+    --hide-extension "gitklient.app" \
     --app-drop-link 475 220 \
     $${DMG_FILENAME} \
     $${BUNDLE_FILENAME}
