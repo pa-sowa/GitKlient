@@ -5,6 +5,6 @@ GenericName=GitKlient
 Comment=A Git GUI for KDE
 Exec=gitklient
 Icon=gitklient
-Categories=Development;RevisionControl;Qt
+Categories=Development;RevisionControl;Qt;
 Terminal=false
 
