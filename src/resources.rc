@@ -1,4 +1,4 @@
-IDI_ICON1 ICON DISCARDABLE resources/icons/GitQlientLogo.ico
+IDI_ICON1 ICON DISCARDABLE resources/icons/GitKlientLogo.ico
 
 VS_VERSION_INFO VERSIONINFO
  FILEVERSION 1,0,0,0
@@ -13,12 +13,12 @@ BEGIN
     BEGIN
         BLOCK "040304b0"
         BEGIN
-            VALUE "FileDescription", "GitQilent"
+            VALUE "FileDescription", "GitKlient"
             VALUE "FileVersion", "1.0.0.0"
-            VALUE "InternalName", "GitQlient"
-            VALUE "LegalCopyright", "Copyright (C) 2020 CescSoftware"
-            VALUE "OriginalFilename", "GitQlient.exe"
-            VALUE "ProductName", "GitQlient"
+            VALUE "InternalName", "GitKlient"
+            VALUE "LegalCopyright", "Copyright (C) 2022 Przemysław Adam Sowa, CescSoftware"
+            VALUE "OriginalFilename", "GitKlient.exe"
+            VALUE "ProductName", "GitKlient"
             VALUE "ProductVersion", "1.0.0.0"
         END
     END
