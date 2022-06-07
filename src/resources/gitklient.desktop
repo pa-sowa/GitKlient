@@ -1,7 +1,10 @@
 [Desktop Entry]
 Type=Application
-Name=GitQlient
-Comment=A multi-platform Git client made with Qt
-Exec=gitqlient
-Icon=gitqlient
-Categories=Office;
+Name=GitKlient
+GenericName=GitKlient
+Comment=A Git GUI for KDE
+Exec=gitklient
+Icon=gitklient
+Categories=Development;RevisionControl;Qt
+Terminal=false
+

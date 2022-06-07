@@ -2,7 +2,7 @@
 Type=Application
 Name=GitKlient
 GenericName=GitKlient
-Comment=GitKlient is a Git GUI for KDE
+Comment=A Git GUI for KDE
 Exec=gitklient
 Icon=gitklient
 Categories=Development;RevisionControl;Qt
