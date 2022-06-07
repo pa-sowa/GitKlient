@@ -144,11 +144,11 @@ QColor CommitChangesWidget::getColorForFile(const RevisionFiles &files, int inde
    const auto isDeleted = files.statusCmp(index, RevisionFiles::DELETED);
 
    if (isConflict)
-      myColor = GitQlientStyles::getBlue();
+      myColor = GitQlientStyles::getOrange();
    else if (isDeleted)
       myColor = GitQlientStyles::getRed();
    else if (untrackedFile)
-      myColor = GitQlientStyles::getOrange();
+      myColor = GitQlientStyles::getGrey();
    else if (files.statusCmp(index, RevisionFiles::NEW) || isUnknown || isInIndex || isPartiallyCached)
       myColor = GitQlientStyles::getGreen();
    else

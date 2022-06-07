@@ -104,6 +104,12 @@ public:
    */
    static QColor getGreen();
    /*!
+    \brief Gets the GitQlient grey color.
+
+   \return QColor
+   */
+   static QColor getGrey();
+   /*!
     \brief Gets the GitQlient orange color.
 
     \return QColor

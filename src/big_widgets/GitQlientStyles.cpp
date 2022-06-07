@@ -86,6 +86,11 @@ QColor GitQlientStyles::getGreen()
    return graphGreen;
 }
 
+QColor GitQlientStyles::getGrey()
+{
+   return graphGrey;
+}
+
 QColor GitQlientStyles::getOrange()
 {
    return graphOrange;
