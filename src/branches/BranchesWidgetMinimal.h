@@ -46,4 +46,5 @@ private:
 
    bool eventFilter(QObject *obj, QEvent *event);
    void addActionToMenu(const QString &sha, const QString &name, QMenu *menu);
+   void setupToolButton(QToolButton *button, QMenu *menu, const QIcon &icon, const QString &tooltip);
 };
