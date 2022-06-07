@@ -46,11 +46,11 @@
         <file alias="diff">resources/icons/diff.svg</file>
         <file alias="options">resources/icons/options.svg</file>
         <file alias="commit-list">resources/icons/listing-option.svg</file>
-        <file alias="GitQlientLogoMedium">resources/icons/GitQlientLogoMedium.png</file>
-        <file alias="GitQlientLogo">resources/icons/GitQlientLogoLarge.png</file>
-        <file alias="GitQlientLogo32">resources/icons/GitQlientLogo32.png</file>
-        <file alias="GitQlientLogoSVG">resources/icons/GitKlientLogo.svg</file>
-        <file alias="GitQlientLogoIco">resources/icons/GitQlientLogo.ico</file>
+        <file alias="GitKlientLogoMedium">resources/icons/GitKlientLogoMedium.png</file>
+        <file alias="GitKlientLogo">resources/icons/GitKlientLogoLarge.png</file>
+        <file alias="GitKlientLogo32">resources/icons/GitKlientLogo32.png</file>
+        <file alias="GitKlientLogoSVG">resources/icons/GitKlientLogo.svg</file>
+        <file alias="GitKlientLogoIco">resources/icons/GitKlientLogo.ico</file>
         <file alias="remove">resources/icons/remove.svg</file>
         <file alias="add">resources/icons/add.svg</file>
         <file alias="check">resources/icons/check.svg</file>

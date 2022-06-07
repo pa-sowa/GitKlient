@@ -71,7 +71,7 @@ InitScreen::InitScreen(QWidget *parent)
    title->setObjectName("title");
 
    const auto gitqlientIcon = new QLabel();
-   QIcon stagedIcon(":/icons/GitQlientLogoSVG");
+   QIcon stagedIcon(":/icons/GitKlientLogoSVG");
    gitqlientIcon->setPixmap(stagedIcon.pixmap(96, 96));
 
    const auto configBtn = new QPushButton();
