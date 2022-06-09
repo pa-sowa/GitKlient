@@ -49,7 +49,6 @@ enum class ControlsMainViews
    Merge,
    GitServer,
    BuildSystem,
-   Config
 };
 
 /*!

@@ -38,7 +38,7 @@ GeneralConfigDlg::GeneralConfigDlg(QWidget *parent)
    mReset->setMinimumWidth(75);
    mApply->setMinimumWidth(75);
 
-   mDisableLogs->setChecked(mSettings->globalValue("logsDisabled", true).toBool());
+   mDisableLogs->setChecked(!mSettings->globalValue("logsEnabled", false).toBool());
 
    mLevelCombo->addItems({ "Trace", "Debug", "Info", "Warning", "Error", "Fatal" });
    mLevelCombo->setCurrentIndex(mSettings->globalValue("logsLevel", static_cast<int>(LogLevel::Warning)).toInt());
@@ -98,7 +98,7 @@ GeneralConfigDlg::GeneralConfigDlg(QWidget *parent)
 
 void GeneralConfigDlg::resetChanges()
 {
-   mDisableLogs->setChecked(mSettings->globalValue("logsDisabled", false).toBool());
+   mDisableLogs->setChecked(!mSettings->globalValue("logsEnabled", false).toBool());
    mLevelCombo->setCurrentIndex(mSettings->globalValue("logsLevel", 2).toInt());
    mStylesSchema->setCurrentText(mSettings->globalValue("colorSchema", "bright").toString());
    mGitLocation->setText(mSettings->globalValue("gitLocation", "").toString());
@@ -106,7 +106,7 @@ void GeneralConfigDlg::resetChanges()
 
 void GeneralConfigDlg::accept()
 {
-   mSettings->setGlobalValue("logsDisabled", mDisableLogs->isChecked());
+   mSettings->setGlobalValue("logsEnabled", !mDisableLogs->isChecked());
    mSettings->setGlobalValue("logsLevel", mLevelCombo->currentIndex());
    mSettings->setGlobalValue("colorSchema", mStylesSchema->currentText());
    mSettings->setGlobalValue("gitLocation", mGitLocation->text());
@@ -146,7 +146,7 @@ void GeneralConfigDlg::importConfig()
 
          const auto obj = doc.object();
 
-         mDisableLogs->setChecked(obj[QStringLiteral("logsDisabled")].toBool());
+         mDisableLogs->setChecked(!obj[QStringLiteral("logsEnabled")].toBool());
          mLevelCombo->setCurrentIndex(obj[QStringLiteral("logsLevel")].toInt());
          mStylesSchema->setCurrentText(obj[QStringLiteral("colorSchema")].toString());
          mGitLocation->setText(obj[QStringLiteral("gitLocation")].toString());
@@ -170,7 +170,7 @@ void GeneralConfigDlg::exportConfig()
    if (fileDialog->exec())
    {
       QJsonObject obj;
-      obj.insert("logsDisabled", mDisableLogs->isChecked());
+      obj.insert("logsEnabled", !mDisableLogs->isChecked());
       obj.insert("logsLevel", mLevelCombo->currentIndex());
       obj.insert("colorSchema", mStylesSchema->currentText());
       obj.insert("gitLocation", mGitLocation->text());

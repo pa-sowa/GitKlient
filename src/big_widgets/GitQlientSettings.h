@@ -57,6 +57,8 @@ public:
     */
    QVariant globalValue(const QString &key, const QVariant &defaultValue = QVariant());
 
+   QFont globalFont(const QString &key, const QFont &defaultValue);
+
    /**
     * @brief setLocalValue Sets a value for a given @p repo with a @p key and @p value.
     * @param repo The local repo to store the config value.

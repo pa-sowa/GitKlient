@@ -43,7 +43,7 @@ class QTimer;
 class WaitingDlg;
 class GitServerCache;
 class GitTags;
-class ConfigWidget;
+class ConfigDialog;
 
 namespace Jenkins
 {
@@ -159,7 +159,6 @@ private:
    MergeWidget *mMergeWidget = nullptr;
    GitServerWidget *mGitServerWidget = nullptr;
    Jenkins::JenkinsWidget *mJenkins = nullptr;
-   ConfigWidget *mConfigWidget = nullptr;
    QTimer *mAutoFetch = nullptr;
    QTimer *mAutoFilesUpdate = nullptr;
    QTimer *mAutoPrUpdater = nullptr;

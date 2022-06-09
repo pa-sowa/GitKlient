@@ -80,11 +80,7 @@ void FileEditor::saveFile()
 void FileEditor::changeFontSize()
 {
    GitQlientSettings settings;
-   const auto fontSize = settings.globalValue("FileDiffView/FontSize", 8).toInt();
-
-   auto font = mFileEditor->font();
-   font.setPointSize(fontSize);
-
+   QFont font = settings.globalFont("FileDiffView", mFileEditor->font());
    const auto cursor = mFileEditor->textCursor();
    mFileEditor->selectAll();
    mFileEditor->setFont(font);

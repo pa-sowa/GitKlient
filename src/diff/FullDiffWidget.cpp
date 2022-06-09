@@ -75,9 +75,7 @@ FullDiffWidget::FullDiffWidget(const QSharedPointer<GitBase> &git, QSharedPointe
 
    GitQlientSettings settings;
 
-   QFont font;
-   font.setFamily(QString::fromUtf8("DejaVu Sans Mono"));
-   font.setPointSize(settings.globalValue("FileDiffView/FontSize", 8).toInt());
+   QFont font = settings.globalFont("FileDiffView", mDiffWidget->font());
    mDiffWidget->setFont(font);
    mDiffWidget->setObjectName("textEditDiff");
    mDiffWidget->setUndoRedoEnabled(false);
@@ -200,11 +198,7 @@ void FullDiffWidget::loadDiff(const QString &sha, const QString &diffToSha, cons
 void FullDiffWidget::changeFontSize()
 {
    GitQlientSettings settings;
-   const auto fontSize = settings.globalValue("FileDiffView/FontSize", 8).toInt();
-
-   auto font = mDiffWidget->font();
-   font.setPointSize(fontSize);
-
+   QFont font = settings.globalFont("FileDiffView", mDiffWidget->font());
    const auto cursor = mDiffWidget->textCursor();
    mDiffWidget->selectAll();
    mDiffWidget->setFont(font);

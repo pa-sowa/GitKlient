@@ -1,20 +1,21 @@
 #pragma once
 
+#include <QDialog>
 #include <QMap>
-#include <QWidget>
 
 class GitBase;
 class QTimer;
 class FileEditor;
 class QPushButton;
 class QAbstractButton;
+class QButtonGroup;
 
 namespace Ui
 {
-class ConfigWidget;
+class ConfigDialog;
 }
 
-class ConfigWidget : public QWidget
+class ConfigDialog : public QDialog
 {
    Q_OBJECT
 
@@ -26,20 +27,17 @@ signals:
    void panelsVisibilityChanged();
 
 public:
-   explicit ConfigWidget(const QSharedPointer<GitBase> &git, QWidget *parent = nullptr);
-   ~ConfigWidget();
-
-   void onPanelsVisibilityChanged();
+   explicit ConfigDialog(const QSharedPointer<GitBase> &git, QWidget *parent = nullptr);
+   ~ConfigDialog();
 
 private:
-   Ui::ConfigWidget *ui;
+   Ui::ConfigDialog *ui;
    QSharedPointer<GitBase> mGit;
    int mOriginalRepoOrder = 0;
    bool mShowResetMsg = false;
-   QTimer *mFeedbackTimer = nullptr;
-   QPushButton *mSave = nullptr;
    FileEditor *mLocalGit = nullptr;
    FileEditor *mGlobalGit = nullptr;
+   QButtonGroup *m_buttonGroup = nullptr;
 
    void clearCache();
    void calculateCacheSize();
@@ -49,6 +47,7 @@ private:
    void showCredentialsDlg();
 
 private slots:
+   void onAccepted();
    void saveConfig();
    void onCredentialsOptionChanged(QAbstractButton *button);
    void onPullStrategyChanged(int index);

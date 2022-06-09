@@ -1,5 +1,5 @@
-#include "ConfigWidget.h"
-#include "ui_ConfigWidget.h"
+#include "ConfigDialog.h"
+#include "ui_ConfigDialog.h"
 
 #include <FileEditor.h>
 #include <GitBase.h>
@@ -9,6 +9,7 @@
 #include <CredentialsDlg.h>
 #include <GitConfig.h>
 #include <GitCredentials.h>
+#include <QButtonGroup>
 #include <QDir>
 #include <QFileInfo>
 #include <QMessageBox>
@@ -43,24 +44,13 @@ qint64 dirSize(QString dirPath)
 }
 }
 
-ConfigWidget::ConfigWidget(const QSharedPointer<GitBase> &git, QWidget *parent)
-   : QWidget(parent)
-   , ui(new Ui::ConfigWidget)
+ConfigDialog::ConfigDialog(const QSharedPointer<GitBase> &git, QWidget *parent)
+   : QDialog(parent)
+   , ui(new Ui::ConfigDialog)
    , mGit(git)
-   , mFeedbackTimer(new QTimer())
-   , mSave(new QPushButton())
+   , m_buttonGroup(new QButtonGroup())
 {
    ui->setupUi(this);
-
-   mFeedbackTimer->setInterval(3000);
-
-   mSave->setIcon(QIcon::fromTheme("document-save", QIcon(":/icons/save")));
-   mSave->setToolTip(tr("Save"));
-   connect(mSave, &QPushButton::clicked, this, &ConfigWidget::saveFile);
-   ui->tabWidget->setCornerWidget(mSave);
-
-   ui->mainLayout->setColumnStretch(0, 1);
-   ui->mainLayout->setColumnStretch(1, 3);
 
    const auto localGitLayout = new QVBoxLayout(ui->localGit);
    localGitLayout->setContentsMargins(QMargins());
@@ -79,22 +69,17 @@ ConfigWidget::ConfigWidget(const QSharedPointer<GitBase> &git, QWidget *parent)
 
    GitQlientSettings settings(mGit->getGitDir());
 
-   ui->chDevMode->setChecked(settings.localValue("DevMode", false).toBool());
    enableWidgets();
 
    // GitQlient configuration
-   ui->chDisableLogs->setChecked(settings.globalValue("logsDisabled", true).toBool());
+   ui->chEnableLogs->setChecked(settings.globalValue("logsEnabled", false).toBool());
    ui->cbLogLevel->setCurrentIndex(settings.globalValue("logsLevel", static_cast<int>(LogLevel::Warning)).toInt());
    ui->spCommitTitleLength->setValue(settings.globalValue("commitTitleMaxLength", 50).toInt());
    ui->sbEditorFontSize->setValue(settings.globalValue("FileDiffView/FontSize", 8).toInt());
+   ui->cbEditorFontFamily->setCurrentText(settings.globalValue("FileDiffView/FontFamily").toString());
 
    const auto originalStyles = settings.globalValue("colorSchema", "dark").toString();
    ui->cbStyle->setCurrentText(originalStyles);
-   connect(ui->cbStyle, static_cast<void (QComboBox::*)(const QString &)>(&QComboBox::currentIndexChanged), this,
-           [this, originalStyles]() {
-              mShowResetMsg = ui->cbStyle->currentText() != originalStyles;
-              saveConfig();
-           });
 
    // Repository configuration
    mOriginalRepoOrder = settings.localValue("GraphSortingOrder", 0).toInt();
@@ -106,7 +91,7 @@ ConfigWidget::ConfigWidget(const QSharedPointer<GitBase> &git, QWidget *parent)
    ui->sbMaxCommits->setValue(settings.localValue("MaxCommits", 0).toInt());
 
    ui->tabWidget->setCurrentIndex(0);
-   connect(ui->pbClearCache, &ButtonLink::clicked, this, &ConfigWidget::clearCache);
+   connect(ui->pbClearCache, &ButtonLink::clicked, this, &ConfigDialog::clearCache);
 
    ui->cbStash->setChecked(settings.localValue("StashesHeader", true).toBool());
    ui->cbSubmodule->setChecked(settings.localValue("SubmodulesHeader", true).toBool());
@@ -116,7 +101,7 @@ ConfigWidget::ConfigWidget(const QSharedPointer<GitBase> &git, QWidget *parent)
    // Build System configuration
    const auto isConfigured = settings.localValue("BuildSystemEnabled", false).toBool();
    ui->chBoxBuildSystem->setChecked(isConfigured);
-   connect(ui->chBoxBuildSystem, &QCheckBox::stateChanged, this, &ConfigWidget::toggleBsAccesInfo);
+   connect(ui->chBoxBuildSystem, &QCheckBox::stateChanged, this, &ConfigDialog::toggleBsAccesInfo);
 
    ui->leBsUser->setVisible(isConfigured);
    ui->leBsUserLabel->setVisible(isConfigured);
@@ -156,55 +141,27 @@ ConfigWidget::ConfigWidget(const QSharedPointer<GitBase> &git, QWidget *parent)
 
    connect(ui->cbPullStrategy, SIGNAL(currentIndexChanged(int)), this, SLOT(onPullStrategyChanged(int)));
 
-   connect(ui->buttonGroup, SIGNAL(buttonClicked(QAbstractButton *)), this,
+   connect(m_buttonGroup, SIGNAL(buttonClicked(QAbstractButton *)), this,
            SLOT(onCredentialsOptionChanged(QAbstractButton *)));
-   connect(ui->pbAddCredentials, &QPushButton::clicked, this, &ConfigWidget::showCredentialsDlg);
+   connect(ui->pbAddCredentials, &QPushButton::clicked, this, &ConfigDialog::showCredentialsDlg);
 
-   // Connects for automatic save
-   connect(ui->chDevMode, &QCheckBox::stateChanged, this, &ConfigWidget::enableWidgets);
-   connect(ui->chDisableLogs, &QCheckBox::stateChanged, this, &ConfigWidget::saveConfig);
-   connect(ui->cbLogLevel, SIGNAL(currentIndexChanged(int)), this, SLOT(saveConfig()));
-   connect(ui->leGitPath, &QLineEdit::editingFinished, this, &ConfigWidget::saveConfig);
-   connect(ui->spCommitTitleLength, SIGNAL(valueChanged(int)), this, SLOT(saveConfig()));
-   connect(ui->sbEditorFontSize, SIGNAL(valueChanged(int)), this, SLOT(saveConfig()));
-   connect(ui->cbTranslations, SIGNAL(currentIndexChanged(int)), this, SLOT(saveConfig()));
-   connect(ui->sbMaxCommits, SIGNAL(valueChanged(int)), this, SLOT(saveConfig()));
-   connect(ui->cbLogOrder, SIGNAL(currentIndexChanged(int)), this, SLOT(saveConfig()));
-   connect(ui->autoFetch, SIGNAL(valueChanged(int)), this, SLOT(saveConfig()));
-   connect(ui->pruneOnFetch, &QCheckBox::stateChanged, this, &ConfigWidget::saveConfig);
-   connect(ui->updateOnPull, &QCheckBox::stateChanged, this, &ConfigWidget::saveConfig);
-   connect(ui->clangFormat, &QCheckBox::stateChanged, this, &ConfigWidget::saveConfig);
-   connect(ui->cbStash, &QCheckBox::stateChanged, this, &ConfigWidget::saveConfig);
-   connect(ui->cbSubmodule, &QCheckBox::stateChanged, this, &ConfigWidget::saveConfig);
-   connect(ui->cbSubtree, &QCheckBox::stateChanged, this, &ConfigWidget::saveConfig);
-   connect(ui->cbDeleteFolder, &QCheckBox::stateChanged, this, &ConfigWidget::saveConfig);
-   connect(ui->leBsUrl, &QLineEdit::editingFinished, this, &ConfigWidget::saveConfig);
-   connect(ui->leBsUser, &QLineEdit::editingFinished, this, &ConfigWidget::saveConfig);
-   connect(ui->leBsToken, &QLineEdit::editingFinished, this, &ConfigWidget::saveConfig);
+   connect(ui->buttonBox, &QDialogButtonBox::accepted, this, &ConfigDialog::onAccepted);
+   connect(ui->buttonBox, &QDialogButtonBox::rejected, this, &ConfigDialog::reject);
 
    calculateCacheSize();
 }
 
-ConfigWidget::~ConfigWidget()
+ConfigDialog::~ConfigDialog()
 {
    delete ui;
 }
 
-void ConfigWidget::onPanelsVisibilityChanged()
-{
-   GitQlientSettings settings(mGit->getGitDir());
-
-   ui->cbStash->setChecked(settings.localValue("StashesHeader", true).toBool());
-   ui->cbSubmodule->setChecked(settings.localValue("SubmodulesHeader", true).toBool());
-   ui->cbSubtree->setChecked(settings.localValue("SubtreeHeader", true).toBool());
-}
-
-void ConfigWidget::onCredentialsOptionChanged(QAbstractButton *button)
+void ConfigDialog::onCredentialsOptionChanged(QAbstractButton *button)
 {
    ui->sbTimeout->setEnabled(button == ui->rbCache);
 }
 
-void ConfigWidget::onPullStrategyChanged(int index)
+void ConfigDialog::onPullStrategyChanged(int index)
 {
    QScopedPointer<GitConfig> gitConfig(new GitConfig(mGit));
 
@@ -225,7 +182,7 @@ void ConfigWidget::onPullStrategyChanged(int index)
    }
 }
 
-void ConfigWidget::clearCache()
+void ConfigDialog::clearCache()
 {
    const auto path = QString("%1").arg(QStandardPaths::writableLocation(QStandardPaths::CacheLocation));
    QProcess p;
@@ -236,7 +193,7 @@ void ConfigWidget::clearCache()
       calculateCacheSize();
 }
 
-void ConfigWidget::calculateCacheSize()
+void ConfigDialog::calculateCacheSize()
 {
    auto size = 0;
    const auto dirPath = QStandardPaths::writableLocation(QStandardPaths::CacheLocation);
@@ -253,7 +210,7 @@ void ConfigWidget::calculateCacheSize()
    ui->lCacheSize->setText(QString("%1 KB").arg(size / 1024.0));
 }
 
-void ConfigWidget::toggleBsAccesInfo()
+void ConfigDialog::toggleBsAccesInfo()
 {
    const auto visible = ui->chBoxBuildSystem->isChecked();
    ui->leBsUser->setVisible(visible);
@@ -264,18 +221,15 @@ void ConfigWidget::toggleBsAccesInfo()
    ui->leBsUrlLabel->setVisible(visible);
 }
 
-void ConfigWidget::saveConfig()
+void ConfigDialog::saveConfig()
 {
-   mFeedbackTimer->stop();
-
-   ui->lFeedback->setText(tr("Changes saved"));
-
    GitQlientSettings settings(mGit->getGitDir());
 
-   settings.setGlobalValue("logsDisabled", ui->chDisableLogs->isChecked());
+   settings.setGlobalValue("logsEnabled", ui->chEnableLogs->isChecked());
    settings.setGlobalValue("logsLevel", ui->cbLogLevel->currentIndex());
    settings.setGlobalValue("commitTitleMaxLength", ui->spCommitTitleLength->value());
    settings.setGlobalValue("FileDiffView/FontSize", ui->sbEditorFontSize->value());
+   settings.setGlobalValue("FileDiffView/FontFamily", ui->cbEditorFontFamily->currentText());
    settings.setGlobalValue("colorSchema", ui->cbStyle->currentText());
    settings.setGlobalValue("gitLocation", ui->leGitPath->text());
 
@@ -294,10 +248,10 @@ void ConfigWidget::saveConfig()
    const auto logger = QLoggerManager::getInstance();
    logger->overwriteLogLevel(static_cast<LogLevel>(ui->cbLogLevel->currentIndex()));
 
-   if (ui->chDisableLogs->isChecked())
-      logger->pause();
-   else
+   if (ui->chEnableLogs->isChecked())
       logger->resume();
+   else
+      logger->pause();
 
    if (mOriginalRepoOrder != ui->cbLogOrder->currentIndex())
    {
@@ -339,21 +293,14 @@ void ConfigWidget::saveConfig()
       settings.setLocalValue("BuildSystemEnabled", false);
       emit buildSystemConfigured(false);
    }
-
-   mFeedbackTimer->singleShot(3000, ui->lFeedback, &QLabel::clear);
 }
 
-void ConfigWidget::enableWidgets()
+void ConfigDialog::enableWidgets()
 {
-   const auto enable = ui->chDevMode->isChecked();
-
-   GitQlientSettings settings(mGit->getGitDir());
-   settings.setLocalValue("DevMode", enable);
-
-   ui->tabWidget->setEnabled(enable);
+   ui->tabWidget->setEnabled(true);
 }
 
-void ConfigWidget::saveFile()
+void ConfigDialog::saveFile()
 {
    const auto id = ui->tabWidget->currentIndex();
 
@@ -363,7 +310,7 @@ void ConfigWidget::saveFile()
       mGlobalGit->saveFile();
 }
 
-void ConfigWidget::showCredentialsDlg()
+void ConfigDialog::showCredentialsDlg()
 {
    // Store credentials if allowed and the user checked the box
    if (ui->credentialsFrames->isVisible() && ui->chbCredentials->isChecked())
@@ -376,4 +323,10 @@ void ConfigWidget::showCredentialsDlg()
          dlg.exec();
       }
    }
+}
+
+void ConfigDialog::onAccepted()
+{
+   saveConfig();
+   accept();
 }

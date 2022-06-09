@@ -1,5 +1,6 @@
 #include "GitQlientSettings.h"
 
+#include <QFont>
 #include <QVector>
 
 QString GitQlientSettings::PinnedRepos = "Config/PinnedRepos";
@@ -19,6 +20,19 @@ void GitQlientSettings::setGlobalValue(const QString &key, const QVariant &value
 QVariant GitQlientSettings::globalValue(const QString &key, const QVariant &defaultValue)
 {
    return globalSettings.value(key, defaultValue);
+}
+
+QFont GitQlientSettings::globalFont(const QString &key, const QFont &defaultValue)
+{
+   QFont font = defaultValue;
+   QString family = globalValue(key + "/FontFamily").toString();
+   if (!family.isEmpty())
+   {
+      font.setFamily(family);
+   }
+   const auto points = globalValue(key + "/FontSize", font.pointSize()).toInt();
+   font.setPointSize(points);
+   return font;
 }
 
 void GitQlientSettings::setLocalValue(const QString &key, const QVariant &value)

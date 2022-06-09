@@ -250,7 +250,7 @@ bool GitQlient::parseArguments(const QStringList &arguments, QStringList *repos)
    GitQlientSettings settings;
    auto logLevel
        = static_cast<LogLevel>(settings.globalValue("logsLevel", static_cast<int>(LogLevel::Warning)).toInt());
-   bool areLogsDisabled = settings.globalValue("logsDisabled", true).toBool();
+   bool areLogsEnabled = settings.globalValue("logsEnabled", false).toBool();
 
    QCommandLineParser parser;
    parser.setApplicationDescription(tr("Multi-platform Git client written with Qt"));
@@ -273,9 +273,9 @@ bool GitQlient::parseArguments(const QStringList &arguments, QStringList *repos)
 
    *repos = parser.positionalArguments();
    if (parser.isSet(noLogOption))
-      areLogsDisabled = true;
+      areLogsEnabled = false;
 
-   if (!areLogsDisabled)
+   if (areLogsEnabled)
    {
       if (parser.isSet(logLevelOption))
       {

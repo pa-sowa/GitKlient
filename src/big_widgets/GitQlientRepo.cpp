@@ -5,7 +5,7 @@
 #include <CommitHistoryColumns.h>
 #include <CommitInfo.h>
 #include <ConfigData.h>
-#include <ConfigWidget.h>
+#include <ConfigDialog.h>
 #include <Controls.h>
 #include <DiffWidget.h>
 #include <GitBase.h>
@@ -58,7 +58,6 @@ GitQlientRepo::GitQlientRepo(const QSharedPointer<GitBase> &git, const QSharedPo
    , mMergeWidget(new MergeWidget(mGitQlientCache, mGitBase))
    , mGitServerWidget(new GitServerWidget(mGitQlientCache, mGitBase, mGitServerCache))
    , mJenkins(new JenkinsWidget(mSettings))
-   , mConfigWidget(new ConfigWidget(mGitBase))
    , mAutoFetch(new QTimer())
    , mAutoFilesUpdate(new QTimer())
 {
@@ -82,7 +81,6 @@ GitQlientRepo::GitQlientRepo(const QSharedPointer<GitBase> &git, const QSharedPo
    mMergeWidget->setContentsMargins(QMargins(5, 5, 5, 5));
    mGitServerWidget->setContentsMargins(QMargins(5, 5, 5, 5));
    mJenkins->setContentsMargins(QMargins(5, 5, 5, 5));
-   mConfigWidget->setContentsMargins(QMargins(5, 5, 5, 5));
 
    mStackedLayout->addWidget(mHistoryWidget);
    mStackedLayout->addWidget(mDiffWidget);
@@ -90,7 +88,6 @@ GitQlientRepo::GitQlientRepo(const QSharedPointer<GitBase> &git, const QSharedPo
    mStackedLayout->addWidget(mMergeWidget);
    mStackedLayout->addWidget(mGitServerWidget);
    mStackedLayout->addWidget(mJenkins);
-   mStackedLayout->addWidget(mConfigWidget);
 
    const auto mainLayout = new QVBoxLayout();
    mainLayout->setSpacing(0);
@@ -128,8 +125,6 @@ GitQlientRepo::GitQlientRepo(const QSharedPointer<GitBase> &git, const QSharedPo
    connect(mHistoryWidget, &HistoryWidget::referencesReload, this, &GitQlientRepo::referencesReload);
    connect(mHistoryWidget, &HistoryWidget::logReload, this, &GitQlientRepo::logReload);
 
-   connect(mHistoryWidget, &HistoryWidget::panelsVisibilityChanged, mConfigWidget,
-           &ConfigWidget::onPanelsVisibilityChanged);
    connect(mHistoryWidget, &HistoryWidget::signalOpenSubmodule, this, &GitQlientRepo::signalOpenSubmodule);
    connect(mHistoryWidget, &HistoryWidget::signalOpenDiff, this, &GitQlientRepo::openCommitDiff);
    connect(mHistoryWidget, &HistoryWidget::signalOpenCompareDiff, this, &GitQlientRepo::openCommitCompareDiff);
@@ -156,13 +151,6 @@ GitQlientRepo::GitQlientRepo(const QSharedPointer<GitBase> &git, const QSharedPo
    connect(mMergeWidget, &MergeWidget::signalMergeFinished, this, &GitQlientRepo::showHistoryView);
    connect(mMergeWidget, &MergeWidget::signalMergeFinished, mGitLoader.data(), &GitRepoLoader::loadAll);
    connect(mMergeWidget, &MergeWidget::signalMergeFinished, mControls, &Controls::disableMergeWarning);
-
-   connect(mConfigWidget, &ConfigWidget::commitTitleMaxLenghtChanged, mHistoryWidget,
-           &HistoryWidget::onCommitTitleMaxLenghtChanged);
-   connect(mConfigWidget, &ConfigWidget::panelsVisibilityChanged, mHistoryWidget,
-           &HistoryWidget::onPanelsVisibilityChanged);
-   connect(mConfigWidget, &ConfigWidget::reloadDiffFont, mHistoryWidget, &HistoryWidget::onDiffFontSizeChanged);
-   // connect(mConfigWidget, &ConfigWidget::reloadDiffFont, mDiffWidget, );
 
    connect(mGitServerWidget, &GitServerWidget::openDiff, this, &GitQlientRepo::openCommitDiff);
 
@@ -484,8 +472,12 @@ void GitQlientRepo::showBuildSystemView()
 
 void GitQlientRepo::showConfig()
 {
-   mStackedLayout->setCurrentWidget(mConfigWidget);
-   mControls->toggleButton(ControlsMainViews::Config);
+   ConfigDialog dialog(mGitBase);
+   connect(&dialog, &ConfigDialog::commitTitleMaxLenghtChanged, mHistoryWidget,
+           &HistoryWidget::onCommitTitleMaxLenghtChanged);
+   connect(&dialog, &ConfigDialog::panelsVisibilityChanged, mHistoryWidget, &HistoryWidget::onPanelsVisibilityChanged);
+   connect(&dialog, &ConfigDialog::reloadDiffFont, mHistoryWidget, &HistoryWidget::onDiffFontSizeChanged);
+   dialog.exec();
 }
 
 void GitQlientRepo::showPreviousView()

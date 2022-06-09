@@ -50,9 +50,7 @@ FileDiffWidget::FileDiffWidget(const QSharedPointer<GitBase> &git, QSharedPointe
    mOldFile->setObjectName("oldFile");
 
    GitQlientSettings settings(mGit->getGitDir());
-   QFont font = mNewFile->font();
-   const auto points = settings.globalValue("FileDiffView/FontSize", 8).toInt();
-   font.setPointSize(points);
+   QFont font = settings.globalFont("FileDiffView", mNewFile->font());
    mNewFile->setFont(font);
    mOldFile->setFont(font);
 
