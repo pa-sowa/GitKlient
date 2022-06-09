@@ -51,8 +51,8 @@
 **
 ****************************************************************************/
 
-#include <QPlainTextEdit>
 #include <DiffInfo.h>
+#include <QPlainTextEdit>
 
 class FileDiffHighlighter;
 
@@ -87,11 +87,6 @@ public:
     \param parent The parent widget if needed.
    */
    explicit FileDiffView(QWidget *parent = nullptr);
-
-   /**
-    * @brief Default constructor
-    */
-   ~FileDiffView();
 
    void addNumberArea(LineNumberArea *numberArea);
 
