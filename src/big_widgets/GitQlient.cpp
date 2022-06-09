@@ -21,6 +21,7 @@
 #include <QProcess>
 #include <QPushButton>
 #include <QStackedLayout>
+#include <QStandardPaths>
 #include <QTabBar>
 #include <QTextStream>
 #include <QToolButton>
@@ -302,7 +303,8 @@ bool GitQlient::parseArguments(const QStringList &arguments, QStringList *repos)
       ret = false;
 
    const auto manager = QLoggerManager::getInstance();
-   manager->addDestination("GitQlient.log", { "UI", "Git", "Cache" }, logLevel);
+   manager->addDestination("GitKlient.log", { "UI", "Git", "Cache" }, logLevel,
+                           QStandardPaths::writableLocation(QStandardPaths::CacheLocation));
 
    return ret;
 }

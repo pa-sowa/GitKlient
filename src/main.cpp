@@ -17,9 +17,7 @@ int main(int argc, char *argv[])
 
    QApplication app(argc, argv);
 
-   QApplication::setOrganizationName("CescSoftware");
-   QApplication::setOrganizationDomain("francescmm.com");
-   QApplication::setApplicationName("GitQlient");
+   QApplication::setApplicationName("GitKlient");
    QApplication::setApplicationVersion(VER);
    QApplication::setWindowIcon(QIcon(":/icons/GitKlientLogoSVG"));
 
