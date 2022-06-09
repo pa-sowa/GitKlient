@@ -184,7 +184,7 @@ void AGitProcess::onFinished(int exitCode, QProcess::ExitStatus exitStatus)
 {
    Q_UNUSED(exitCode)
 
-   QLog_Debug("Git", QString("Process {%1} finished.").arg(mCommand));
+   QLog_Debug("Git", QString("Process {%1} finished with code %2").arg(mCommand).arg(exitCode));
 
    const auto errorOutput = readAllStandardError();
 
