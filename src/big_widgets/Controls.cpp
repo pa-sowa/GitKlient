@@ -87,7 +87,6 @@ Controls::Controls(const QSharedPointer<GitCache> &cache, const QSharedPointer<G
 
    mConfigAction = new QAction(this);
    mConfigAction->setText(tr("Settings"));
-   mConfigAction->setCheckable(true);
    mConfigAction->setIcon(QIcon::fromTheme("configure", QIcon(":/icons/config")));
    mConfigAction->setToolTip(tr("Config"));
    mActionGroup->addAction(mConfigAction);
@@ -176,9 +175,6 @@ void Controls::toggleButton(ControlsMainViews view)
          break;
       case ControlsMainViews::BuildSystem:
          action = mBuildSystemAction;
-         break;
-      case ControlsMainViews::Config:
-         action = mConfigAction;
          break;
    }
 
