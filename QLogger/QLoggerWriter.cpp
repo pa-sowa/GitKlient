@@ -22,9 +22,9 @@ QString levelToText(const QLogger::LogLevel &level)
       case QLogger::LogLevel::Debug:
          return "Debug";
       case QLogger::LogLevel::Info:
-         return "Info";
+         return "Info ";
       case QLogger::LogLevel::Warning:
-         return "Warning";
+         return "Warn ";
       case QLogger::LogLevel::Error:
          return "Error";
       case QLogger::LogLevel::Fatal:
@@ -168,35 +168,36 @@ void QLoggerWriter::enqueue(const QDateTime &date, const QString &threadId, cons
    if (mMessageOptions.testFlag(LogMessageDisplay::File) && mMessageOptions.testFlag(LogMessageDisplay::Line)
        && !fileName.isEmpty() && line > 0 && mLevel <= LogLevel::Debug)
    {
-      fileLine = QString("{%1:%2}").arg(fileName, QString::number(line));
+      fileLine = QString("%1:%2").arg(fileName, QString::number(line));
    }
    else if (mMessageOptions.testFlag(LogMessageDisplay::File) && mMessageOptions.testFlag(LogMessageDisplay::Function)
             && !fileName.isEmpty() && !function.isEmpty() && mLevel <= LogLevel::Debug)
    {
-      fileLine = QString("{%1}{%2}").arg(fileName, function);
+      fileLine = QString("%1 %2").arg(fileName, function);
    }
 
    QString text;
    if (mMessageOptions.testFlag(LogMessageDisplay::Default))
    {
-      text = QString("[%1][%2][%3][%4]%5 %6")
-                 .arg(levelToText(level), module)
-                 .arg(date.toSecsSinceEpoch())
-                 .arg(threadId, fileLine, message);
+      text = QString("%1 %2 %3 %4 %5 %6")
+                 .arg(levelToText(level))
+                 .arg(date.toString("yyyy-MM-dd hh:mm:ss.zzz"))
+                 .arg(threadId, module)
+                 .arg(fileLine, message);
    }
    else
    {
       if (mMessageOptions.testFlag(LogMessageDisplay::LogLevel))
-         text.append(QString("[%1]").arg(levelToText(level)));
-
-      if (mMessageOptions.testFlag(LogMessageDisplay::ModuleName))
-         text.append(QString("[%1]").arg(module));
+         text.append(QString("%1 ").arg(levelToText(level)));
 
       if (mMessageOptions.testFlag(LogMessageDisplay::DateTime))
-         text.append(QString("[%1]").arg(date.toSecsSinceEpoch()));
+         text.append(QString("%1 ").arg(date.toString("yyyy-MM-dd hh:mm:ss.zzz")));
 
       if (mMessageOptions.testFlag(LogMessageDisplay::ThreadId))
-         text.append(QString("[%1]").arg(threadId));
+         text.append(QString("[%1] ").arg(threadId));
+
+      if (mMessageOptions.testFlag(LogMessageDisplay::ModuleName))
+         text.append(QString("%1 ").arg(module));
 
       if (!fileLine.isEmpty())
       {
@@ -216,7 +217,7 @@ void QLoggerWriter::enqueue(const QDateTime &date, const QString &threadId, cons
 
    text.append(QString::fromLatin1("\n"));
 
-   mMessages.append({ threadId, text });
+   mMessages.append(text);
 
    if (!mIsStop)
       mQueueNotEmpty.wakeAll();

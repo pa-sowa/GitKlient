@@ -4,6 +4,13 @@
 
 #include <QDateTime>
 #include <QDir>
+#ifdef Q_OS_LINUX
+// For gettid()
+extern "C" {
+#   include <unistd.h>
+#   include <sys/types.h>
+}
+#endif
 
 Q_DECLARE_METATYPE(QLogger::LogLevel);
 Q_DECLARE_METATYPE(QLogger::LogMode);
@@ -17,6 +24,16 @@ void QLog_(const QString &module, LogLevel level, const QString &message, const 
            int line)
 {
    QLoggerManager::getInstance()->enqueueMessage(module, level, message, function, file, line);
+}
+
+QString currentThreadId()
+{
+#ifdef Q_OS_LINUX
+   // On Linux use the actual thread ID instead of Qt's pointer value
+   return QString::number(::gettid());
+#else
+   return QString::number(reinterpret_cast<quintptr>(threadId), 16);
+#endif
 }
 
 static const int QUEUE_LIMIT = 100;
@@ -100,7 +117,7 @@ void QLoggerManager::startWriter(const QString &module, QLoggerWriter *log, LogM
 {
    if (notify)
    {
-      const auto threadId = QString("%1").arg((quintptr)QThread::currentThread(), QT_POINTER_SIZE * 2, 16, QChar('0'));
+      const auto threadId = currentThreadId();
       log->enqueue(QDateTime::currentDateTime(), threadId, module, LogLevel::Info, "", "", -1, "Adding destination!");
    }
 
@@ -175,7 +192,7 @@ void QLoggerManager::enqueueMessage(const QString &module, LogLevel level, const
 
    if (isLogEnabled && logWriter->getLevel() <= level)
    {
-      const auto threadId = QString("%1").arg((quintptr)QThread::currentThread(), QT_POINTER_SIZE * 2, 16, QChar('0'));
+      const auto threadId = currentThreadId();
       const auto fileName = file.mid(file.lastIndexOf('/') + 1);
 
       writeAndDequeueMessages(module);
@@ -184,7 +201,7 @@ void QLoggerManager::enqueueMessage(const QString &module, LogLevel level, const
    }
    else if (!logWriter && mNonWriterQueue.count(module) < QUEUE_LIMIT)
    {
-      const auto threadId = QString("%1").arg((quintptr)QThread::currentThread(), QT_POINTER_SIZE * 2, 16, QChar('0'));
+      const auto threadId = currentThreadId();
       const auto fileName = file.mid(file.lastIndexOf('/') + 1);
 
       mNonWriterQueue.insert(module,
