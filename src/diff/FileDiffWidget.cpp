@@ -221,11 +221,24 @@ bool FileDiffWidget::configure(const QString &currentSha, const QString &previou
    QString text;
    GitHistory git(mGit);
 
-   if (const auto ret
+   // TODO: get file status instead of trying 3 diff methods
+
+   if (auto ret
        = git.getFileDiff(currentSha == CommitInfo::ZERO_SHA ? QString() : currentSha, previousSha, destFile, isStaged);
        ret.success)
    {
       text = ret.output;
+
+      if (text.isEmpty())
+      {
+         if (!isStaged && currentSha == CommitInfo::ZERO_SHA)
+         {
+            // This method is invoked periodically and this file could be staged
+            // in the meantime so retry assuming staged file
+            ret = git.getFileDiff(QString(), previousSha, destFile, true);
+            text = ret.output;
+         }
+      }
 
       if (text.isEmpty())
       {
