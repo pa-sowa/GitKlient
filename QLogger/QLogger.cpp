@@ -32,7 +32,7 @@ QString currentThreadId()
    // On Linux use the actual thread ID instead of Qt's pointer value
    return QString::number(::gettid());
 #else
-   return QString::number(reinterpret_cast<quintptr>(threadId), 16);
+   return QString::number(reinterpret_cast<quintptr>(QThread::currentThread()), 16);
 #endif
 }
 
