@@ -316,9 +316,9 @@ void CommitChangesWidget::addAllFilesToCommitList()
 
 void CommitChangesWidget::requestDiff(const QString &fileName)
 {
-   const auto isCached = qobject_cast<StagedFilesList *>(sender()) == ui->stagedFilesList;
+   const auto isStaged = qobject_cast<StagedFilesList *>(sender()) == ui->stagedFilesList;
    emit signalShowDiff(CommitInfo::ZERO_SHA, mCache->commitInfo(CommitInfo::ZERO_SHA).firstParent(), fileName,
-                       isCached);
+                       isStaged);
 }
 
 QString CommitChangesWidget::addFileToCommitList(QListWidgetItem *item, bool updateGit)

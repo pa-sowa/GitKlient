@@ -614,16 +614,16 @@ void HistoryWidget::cherryPickCommit()
    }
 }
 
-void HistoryWidget::showFileDiff(const QString &sha, const QString &parentSha, const QString &fileName, bool isCached)
+void HistoryWidget::showFileDiff(const QString &sha, const QString &parentSha, const QString &fileName, bool isStaged)
 {
    if (sha == CommitInfo::ZERO_SHA)
    {
-      mFileDiff->configure(sha, parentSha, fileName, isCached);
+      mFileDiff->configure(sha, parentSha, fileName, isStaged);
       mCenterStackedWidget->setCurrentIndex(static_cast<int>(Pages::FileDiff));
       mBranchesWidget->forceMinimalView();
    }
    else
-      emit signalShowDiff(sha, parentSha, fileName, isCached);
+      emit signalShowDiff(sha, parentSha, fileName, isStaged);
 }
 
 void HistoryWidget::showFileDiffEdition(const QString &sha, const QString &parentSha, const QString &fileName)

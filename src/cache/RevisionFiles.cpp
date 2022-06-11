@@ -1,6 +1,6 @@
 #include "RevisionFiles.h"
 
-RevisionFiles::RevisionFiles(const QString &diff, bool cached)
+RevisionFiles::RevisionFiles(const QString &diff, bool isStaged)
 {
    auto parNum = 1;
 
@@ -26,11 +26,11 @@ RevisionFiles::RevisionFiles(const QString &diff, bool cached)
             {
                auto fields = line.split(" ");
                const auto dstSha = fields.at(3);
-               auto fileIsCached = !dstSha.startsWith(QStringLiteral("000000"));
+               auto fileIsStaged = !dstSha.startsWith(QStringLiteral("000000"));
                const auto flag = fields.at(4).at(0);
 
                mFiles.append(line.mid(99));
-               setStatus(flag, cached ? cached : fileIsCached);
+               setStatus(flag, isStaged ? isStaged : fileIsStaged);
                mergeParent.append(parNum);
             }
             else // It's a rename or a copy, we are not in fast path now!

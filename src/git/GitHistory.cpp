@@ -100,11 +100,11 @@ GitExecResult GitHistory::getCommitDiff(const QString &sha, const QString &diffT
 }
 
 GitExecResult GitHistory::getFileDiff(const QString &currentSha, const QString &previousSha, const QString &file,
-                                      bool isCached)
+                                      bool isStaged)
 {
    QLog_Debug("Git", QString("Getting diff for a file: {%1} between {%2} and {%3}").arg(file, currentSha, previousSha));
 
-   auto cmd = QString("git diff %1 -w -U15000 ").arg(QString::fromUtf8(isCached ? "--cached" : ""));
+   auto cmd = QString("git diff %1 -w -U15000 ").arg(QString::fromUtf8(isStaged ? "--cached" : ""));
 
    if (currentSha.isEmpty() || currentSha == CommitInfo::ZERO_SHA)
       cmd.append(file);

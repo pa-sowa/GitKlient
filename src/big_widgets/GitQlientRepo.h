@@ -226,7 +226,7 @@ private:
     \param previousSha The SHA to compare to.
     \param file The file to show the diff.
    */
-   void loadFileDiff(const QString &currentSha, const QString &previousSha, const QString &file, bool isCached);
+   void loadFileDiff(const QString &currentSha, const QString &previousSha, const QString &file, bool isStaged);
 
    /*!
     \brief Shows the history/repository view.

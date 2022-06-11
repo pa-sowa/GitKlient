@@ -22,7 +22,7 @@ public:
 
    RevisionFiles() = default;
    ~RevisionFiles();
-   RevisionFiles(const QString &diff, bool cached = false);
+   RevisionFiles(const QString &diff, bool isStaged = false);
 
    bool isValid() const;
    bool operator==(const RevisionFiles &revFiles) const;

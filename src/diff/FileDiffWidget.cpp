@@ -185,7 +185,7 @@ void FileDiffWidget::clear()
 bool FileDiffWidget::reload()
 {
    if (mCurrentSha == CommitInfo::ZERO_SHA)
-      return configure(mCurrentSha, mPreviousSha, mCurrentFile, mIsCached, mEdition->isChecked());
+      return configure(mCurrentSha, mPreviousSha, mCurrentFile, mIsStaged, mEdition->isChecked());
 
    return false;
 }
@@ -211,7 +211,7 @@ void FileDiffWidget::changeFontSize()
 }
 
 bool FileDiffWidget::configure(const QString &currentSha, const QString &previousSha, const QString &file,
-                               bool isCached, bool editMode)
+                               bool isStaged, bool editMode)
 {
    auto destFile = file;
 
@@ -222,7 +222,7 @@ bool FileDiffWidget::configure(const QString &currentSha, const QString &previou
    QScopedPointer<GitHistory> git(new GitHistory(mGit));
 
    if (const auto ret
-       = git->getFileDiff(currentSha == CommitInfo::ZERO_SHA ? QString() : currentSha, previousSha, destFile, isCached);
+       = git->getFileDiff(currentSha == CommitInfo::ZERO_SHA ? QString() : currentSha, previousSha, destFile, isStaged);
        ret.success)
    {
       text = ret.output;
@@ -247,7 +247,7 @@ bool FileDiffWidget::configure(const QString &currentSha, const QString &previou
    mRevert->setVisible(isWip);
    mTitleFrame->setVisible(isWip);
 
-   mIsCached = isCached;
+   mIsStaged = isStaged;
    mCurrentFile = file;
    mCurrentSha = currentSha;
    mPreviousSha = previousSha;
@@ -311,7 +311,7 @@ void FileDiffWidget::setSplitViewEnabled(bool enable)
    GitQlientSettings settings(mGit->getGitDir());
    settings.setLocalValue(GitQlientSettings::SplitFileDiffView, mFileVsFile);
 
-   configure(mCurrentSha, mPreviousSha, mCurrentFile, mIsCached);
+   configure(mCurrentSha, mPreviousSha, mCurrentFile, mIsStaged);
 
    mFullView->blockSignals(true);
    mFullView->setChecked(!mFileVsFile);
@@ -340,7 +340,7 @@ void FileDiffWidget::setFullViewEnabled(bool enable)
    GitQlientSettings settings(mGit->getGitDir());
    settings.setLocalValue(GitQlientSettings::SplitFileDiffView, mFileVsFile);
 
-   configure(mCurrentSha, mPreviousSha, mCurrentFile, mIsCached);
+   configure(mCurrentSha, mPreviousSha, mCurrentFile, mIsStaged);
 
    mSplitView->blockSignals(true);
    mSplitView->setChecked(mFileVsFile);

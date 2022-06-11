@@ -97,7 +97,7 @@ signals:
     \param parentSha The commit SHA to compare to.
     \param fileName The file name for the diff.
    */
-   void signalShowDiff(const QString &sha, const QString &parentSha, const QString &fileName, bool isCached);
+   void signalShowDiff(const QString &sha, const QString &parentSha, const QString &fileName, bool isStaged);
 
    /*!
     \brief Signal triggered when changes are committed.
@@ -324,7 +324,7 @@ private:
     * @param parentSha The commit SHA to compare with.
     * @param fileName The file name to diff.
     */
-   void showFileDiff(const QString &sha, const QString &parentSha, const QString &fileName, bool isCached);
+   void showFileDiff(const QString &sha, const QString &parentSha, const QString &fileName, bool isStaged);
 
    /**
     * @brief showFileDiff Shows the file diff.

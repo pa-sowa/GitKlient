@@ -95,9 +95,10 @@ public:
     \param previousSha The SHA to compare to.
     \param file The file that will show the diff.
     \param editMode Enters edit mode directly.
+    \param isStaged whether file is staged for a commit
     \return bool Returns true if the configuration was applied, otherwise false.
    */
-   bool configure(const QString &currentSha, const QString &previousSha, const QString &file, bool isCached,
+   bool configure(const QString &currentSha, const QString &previousSha, const QString &file, bool isStaged,
                   bool editMode = false);
 
    /**
@@ -125,7 +126,7 @@ public:
 
 private:
    QString mCurrentFile;
-   bool mIsCached = false;
+   bool mIsStaged = true;
    QPushButton *mBack = nullptr;
    QPushButton *mGoPrevious = nullptr;
    QPushButton *mGoNext = nullptr;
