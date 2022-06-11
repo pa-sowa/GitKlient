@@ -18,32 +18,36 @@ UnstagedMenu::UnstagedMenu(const QSharedPointer<GitBase> &git, const QString &fi
 {
    setAttribute(Qt::WA_DeleteOnClose);
 
-   connect(addAction(tr("See changes")), &QAction::triggered, this, [this]() { emit signalShowDiff(mFileName); });
-   connect(addAction(tr("Blame")), &QAction::triggered, this, [this]() { emit signalShowFileHistory(mFileName); });
-   connect(addAction(tr("Edit file")), &QAction::triggered, this,
-           [this]() { emit signalEditFile(mGit->getWorkingDir() + "/" + mFileName); });
+   connect(addAction(QIcon::fromTheme("vcs-diff", QIcon(":/icons/diff")), tr("See changes")), &QAction::triggered, this,
+           [this]() { emit signalShowDiff(mFileName); });
+   connect(addAction(QIcon::fromTheme("actor", QIcon(":/icons/blame")), tr("Blame")), &QAction::triggered, this,
+           [this]() { emit signalShowFileHistory(mFileName); });
+   connect(addAction(QIcon::fromTheme("document-edit", QIcon(":/icons/edit")), tr("Edit file")), &QAction::triggered,
+           this, [this]() { emit signalEditFile(mGit->getWorkingDir() + "/" + mFileName); });
 
    addSeparator();
 
-   connect(addAction(tr("Stage file")), &QAction::triggered, this, &UnstagedMenu::signalStageFile);
+   connect(addAction(QIcon::fromTheme("list-add"), tr("Stage file")), &QAction::triggered, this,
+           &UnstagedMenu::signalStageFile);
 
-   connect(addAction(tr("Revert file changes")), &QAction::triggered, this, [this]() {
-      const auto msgBoxRet
-          = QMessageBox::question(this, tr("Ignoring file"), tr("Are you sure you want to revert the changes?"));
+   connect(addAction(QIcon::fromTheme("document-revert", QIcon(":/icons/revert")), tr("Revert file changes")),
+           &QAction::triggered, this, [this]() {
+              const auto msgBoxRet = QMessageBox::question(this, tr("Ignoring file"),
+                                                           tr("Are you sure you want to revert the changes?"));
 
-      if (msgBoxRet == QMessageBox::Yes)
-      {
-         QScopedPointer<GitLocal> git(new GitLocal(mGit));
-         const auto ret = git->checkoutFile(mFileName);
+              if (msgBoxRet == QMessageBox::Yes)
+              {
+                 QScopedPointer<GitLocal> git(new GitLocal(mGit));
+                 const auto ret = git->checkoutFile(mFileName);
 
-         if (ret)
-            emit changeReverted(mFileName);
-      }
-   });
+                 if (ret)
+                    emit changeReverted(mFileName);
+              }
+           });
 
    addSeparator();
 
-   const auto ignoreMenu = addMenu(tr("Ignore"));
+   const auto ignoreMenu = addMenu(QIcon::fromTheme("edit-none"), tr("Ignore"));
 
    connect(ignoreMenu->addAction(tr("Ignore file")), &QAction::triggered, this, [this]() {
       const auto ret = QMessageBox::question(this, tr("Ignoring file"),
@@ -58,9 +62,11 @@ UnstagedMenu::UnstagedMenu(const QSharedPointer<GitBase> &git, const QString &fi
       }
    });
 
-   connect(addAction(tr("Delete file")), &QAction::triggered, this, &UnstagedMenu::onDeleteFile);
+   connect(addAction(QIcon::fromTheme("delete"), tr("Delete file")), &QAction::triggered, this,
+           &UnstagedMenu::onDeleteFile);
 
-   connect(addAction(tr("Delete ALL untracked files")), &QAction::triggered, this, &UnstagedMenu::deleteUntracked);
+   connect(addAction(QIcon::fromTheme("delete"), tr("Delete ALL untracked files")), &QAction::triggered, this,
+           &UnstagedMenu::deleteUntracked);
 
    connect(ignoreMenu->addAction(tr("Ignore extension")), &QAction::triggered, this, [this]() {
       const auto msgBoxRet = QMessageBox::question(
@@ -96,13 +102,15 @@ UnstagedMenu::UnstagedMenu(const QSharedPointer<GitBase> &git, const QString &fi
 
    addSeparator();
 
-   connect(addAction(tr("Add all files to commit")), &QAction::triggered, this, &UnstagedMenu::signalCommitAll);
-   connect(addAction(tr("Revert all changes")), &QAction::triggered, this, [this]() {
-      const auto msgBoxRet
-          = QMessageBox::question(this, tr("Ignoring file"), tr("Are you sure you want to undo all the changes?"));
-      if (msgBoxRet == QMessageBox::Yes)
-         emit signalRevertAll();
-   });
+   connect(addAction(QIcon::fromTheme("list-add"), tr("Add all files to commit")), &QAction::triggered, this,
+           &UnstagedMenu::signalCommitAll);
+   connect(addAction(QIcon::fromTheme("document-revert", QIcon(":/icons/revert")), tr("Revert all changes")),
+           &QAction::triggered, this, [this]() {
+              const auto msgBoxRet = QMessageBox::question(this, tr("Ignoring file"),
+                                                           tr("Are you sure you want to undo all the changes?"));
+              if (msgBoxRet == QMessageBox::Yes)
+                 emit signalRevertAll();
+           });
 }
 
 bool UnstagedMenu::addEntryToGitIgnore(const QString &entry)
