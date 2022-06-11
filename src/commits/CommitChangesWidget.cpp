@@ -81,6 +81,8 @@ CommitChangesWidget::CommitChangesWidget(const QSharedPointer<GitCache> &cache, 
               }
            });
 
+   ui->unstagedFilesList->installEventFilter(this);
+
    ui->warningButton->setVisible(false);
    ui->applyActionBtn->setText(tr("Commit"));
 }
@@ -187,6 +189,24 @@ void CommitChangesWidget::deleteUntrackedFiles()
    }
 
    emit signalCheckoutPerformed();
+}
+
+bool CommitChangesWidget::eventFilter(QObject *obj, QEvent *event)
+{
+   if (obj == ui->unstagedFilesList && event->type() == QEvent::KeyPress)
+   {
+      QKeyEvent *keyEvent = static_cast<QKeyEvent *>(event);
+      if (keyEvent->key() == Qt::Key_Space || keyEvent->key() == Qt::Key_Enter)
+      {
+         auto item = ui->unstagedFilesList->currentItem();
+         if (item)
+         {
+            addFileToCommitList(item);
+         }
+         return true;
+      }
+   }
+   return QWidget::eventFilter(obj, event);
 }
 
 void CommitChangesWidget::prepareCache()

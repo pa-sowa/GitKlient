@@ -106,6 +106,7 @@ protected:
    virtual void resetFile(QListWidgetItem *item) final;
    virtual QColor getColorForFile(const RevisionFiles &files, int index) const final;
    virtual void deleteUntrackedFiles() final;
+   virtual bool eventFilter(QObject *obj, QEvent *ev) override;
 
    static QString lastMsgBeforeError;
 };
