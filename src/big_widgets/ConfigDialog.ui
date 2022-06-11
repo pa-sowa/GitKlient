@@ -24,7 +24,7 @@
      </property>
      <widget class="QWidget" name="applicationTab">
       <attribute name="title">
-       <string>GitQlient</string>
+       <string>GitKlient</string>
       </attribute>
       <layout class="QVBoxLayout" name="verticalLayout">
        <property name="spacing">

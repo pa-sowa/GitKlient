@@ -42,6 +42,19 @@ qint64 dirSize(QString dirPath)
 
    return size;
 }
+
+QString humanReadableSize(qint64 number)
+{
+   int i = 0;
+   const QVector<QString> units = { "B", "kiB", "MiB", "GiB", "TiB", "PiB", "EiB", "ZiB", "YiB" };
+   while (number > 1024)
+   {
+      number /= 1024;
+      i++;
+   }
+   return QString::number(static_cast<double>(number), 'f', 2) + " " + units[i];
+}
+
 }
 
 ConfigDialog::ConfigDialog(const QSharedPointer<GitBase> &git, QWidget *parent)
@@ -207,7 +220,7 @@ void ConfigDialog::calculateCacheSize()
       size += dirSize(dirPath + "/" + file.fileName());
    }
 
-   ui->lCacheSize->setText(QString("%1 KB").arg(size / 1024.0));
+   ui->lCacheSize->setText(humanReadableSize(size));
 }
 
 void ConfigDialog::toggleBsAccesInfo()
