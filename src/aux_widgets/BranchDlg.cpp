@@ -84,12 +84,12 @@ void BranchDlg::accept()
    {
       QApplication::setOverrideCursor(QCursor(Qt::WaitCursor));
 
-      QScopedPointer<GitBranches> git(new GitBranches(mConfig.mGit));
+      GitBranches branches(mConfig.mGit);
       GitExecResult ret;
 
       if (mConfig.mDialogMode == BranchDlgMode::CREATE)
       {
-         ret = git->createBranchFromAnotherBranch(ui->leOldName->text(), ui->leNewName->text());
+         ret = branches.createBranchFromAnotherBranch(ui->leOldName->text(), ui->leNewName->text());
 
          if (ret.success)
          {
@@ -111,7 +111,7 @@ void BranchDlg::accept()
       }
       else if (mConfig.mDialogMode == BranchDlgMode::CREATE_CHECKOUT)
       {
-         ret = git->checkoutNewLocalBranch(ui->leNewName->text());
+         ret = branches.checkoutNewLocalBranch(ui->leNewName->text());
 
          if (ret.success)
          {
@@ -122,7 +122,7 @@ void BranchDlg::accept()
       }
       else if (mConfig.mDialogMode == BranchDlgMode::RENAME)
       {
-         ret = git->renameBranch(ui->leOldName->text(), ui->leNewName->text());
+         ret = branches.renameBranch(ui->leOldName->text(), ui->leNewName->text());
 
          if (ret.success)
          {
@@ -136,7 +136,7 @@ void BranchDlg::accept()
       }
       else if (mConfig.mDialogMode == BranchDlgMode::CREATE_FROM_COMMIT)
       {
-         ret = git->createBranchAtCommit(ui->leOldName->text(), ui->leNewName->text());
+         ret = branches.createBranchAtCommit(ui->leOldName->text(), ui->leNewName->text());
 
          if (ret.success)
          {
@@ -147,7 +147,7 @@ void BranchDlg::accept()
       }
       else if (mConfig.mDialogMode == BranchDlgMode::CREATE_CHECKOUT_FROM_COMMIT)
       {
-         ret = git->checkoutBranchFromCommit(ui->leOldName->text(), ui->leNewName->text());
+         ret = branches.checkoutBranchFromCommit(ui->leOldName->text(), ui->leNewName->text());
 
          if (ret.success)
          {
@@ -158,17 +158,17 @@ void BranchDlg::accept()
       }
       else if (mConfig.mDialogMode == BranchDlgMode::STASH_BRANCH)
       {
-         QScopedPointer<GitStashes> git(new GitStashes(mConfig.mGit));
-         ret = git->stashBranch(ui->leOldName->text(), ui->leNewName->text());
+         GitStashes stashes(mConfig.mGit);
+         ret = stashes.stashBranch(ui->leOldName->text(), ui->leNewName->text());
       }
       else if (mConfig.mDialogMode == BranchDlgMode::PUSH_UPSTREAM)
       {
-         ret = git->pushUpstream(ui->leNewName->text());
+         ret = branches.pushUpstream(ui->leNewName->text());
 
          if (ret.success)
          {
-            QScopedPointer<GitConfig> git(new GitConfig(mConfig.mGit));
-            const auto remote = git->getRemoteForBranch(ui->leNewName->text());
+            GitConfig config(mConfig.mGit);
+            const auto remote = config.getRemoteForBranch(ui->leNewName->text());
 
             if (remote.success)
             {

@@ -219,17 +219,17 @@ bool FileDiffWidget::configure(const QString &currentSha, const QString &previou
       destFile = destFile.split("--> ").last().split("(").first().trimmed();
 
    QString text;
-   QScopedPointer<GitHistory> git(new GitHistory(mGit));
+   GitHistory git(mGit);
 
    if (const auto ret
-       = git->getFileDiff(currentSha == CommitInfo::ZERO_SHA ? QString() : currentSha, previousSha, destFile, isStaged);
+       = git.getFileDiff(currentSha == CommitInfo::ZERO_SHA ? QString() : currentSha, previousSha, destFile, isStaged);
        ret.success)
    {
       text = ret.output;
 
       if (text.isEmpty())
       {
-         if (const auto ret = git->getUntrackedFileDiff(destFile); ret.success)
+         if (const auto ret = git.getUntrackedFileDiff(destFile); ret.success)
             text = ret.output;
       }
 
@@ -441,8 +441,8 @@ void FileDiffWidget::endEditFile()
 
 void FileDiffWidget::stageFile()
 {
-   QScopedPointer<GitLocal> git(new GitLocal(mGit));
-   const auto ret = git->stageFile(mCurrentFile);
+   GitLocal git(mGit);
+   const auto ret = git.stageFile(mCurrentFile);
 
    if (ret.success)
    {
@@ -460,8 +460,8 @@ void FileDiffWidget::revertFile()
 
    if (ret == QMessageBox::Ok)
    {
-      QScopedPointer<GitLocal> git(new GitLocal(mGit));
-      const auto ret = git->checkoutFile(mCurrentFile);
+      GitLocal git(mGit);
+      const auto ret = git.checkoutFile(mCurrentFile);
 
       if (ret)
       {
@@ -543,9 +543,9 @@ void FileDiffWidget::stageChunk(const QString &id)
          f.write(patch.toUtf8());
          f.close();
 
-         QScopedPointer<GitPatches> git(new GitPatches(mGit));
+         GitPatches git(mGit);
 
-         if (const auto ret = git->stagePatch(f.fileName()); ret.success)
+         if (const auto ret = git.stagePatch(f.fileName()); ret.success)
             QMessageBox::information(this, tr("Changes staged!"), tr("The chunk has been successfully staged."));
          else
          {

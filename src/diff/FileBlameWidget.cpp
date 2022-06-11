@@ -78,8 +78,8 @@ FileBlameWidget::FileBlameWidget(const QSharedPointer<GitCache> &cache, const QS
 void FileBlameWidget::setup(const QString &fileName, const QString &currentSha, const QString &previousSha)
 {
    mCurrentFile = fileName;
-   QScopedPointer<GitHistory> git(new GitHistory(mGit));
-   const auto ret = git->blame(mCurrentFile, currentSha);
+   GitHistory git(mGit);
+   const auto ret = git.blame(mCurrentFile, currentSha);
 
    if (ret.success && !ret.output.startsWith("fatal:"))
    {

@@ -211,8 +211,8 @@ void Controls::enableButtons(bool enabled)
 void Controls::pullCurrentBranch()
 {
    QApplication::setOverrideCursor(QCursor(Qt::WaitCursor));
-   QScopedPointer<GitRemote> git(new GitRemote(mGit));
-   const auto ret = git->pull();
+   GitRemote gitRemote(mGit);
+   const auto ret = gitRemote.pull();
    QApplication::restoreOverrideCursor();
 
    if (ret.success)
@@ -245,8 +245,8 @@ void Controls::pullCurrentBranch()
 void Controls::fetchAll()
 {
    QApplication::setOverrideCursor(QCursor(Qt::WaitCursor));
-   QScopedPointer<GitRemote> git(new GitRemote(mGit));
-   const auto ret = git->fetch();
+   GitRemote gitRemote(mGit);
+   const auto ret = gitRemote.fetch();
    QApplication::restoreOverrideCursor();
 
    if (ret)
@@ -276,8 +276,8 @@ ControlsMainViews Controls::getCurrentSelectedButton() const
 void Controls::pushCurrentBranch()
 {
    QApplication::setOverrideCursor(QCursor(Qt::WaitCursor));
-   QScopedPointer<GitRemote> git(new GitRemote(mGit));
-   const auto ret = git->push();
+   GitRemote gitRemote(mGit);
+   const auto ret = gitRemote.push();
    QApplication::restoreOverrideCursor();
 
    if (ret.output.contains("has no upstream branch"))
@@ -292,8 +292,8 @@ void Controls::pushCurrentBranch()
    else if (ret.success)
    {
       const auto currentBranch = mGit->getCurrentBranch();
-      QScopedPointer<GitConfig> git(new GitConfig(mGit));
-      const auto remote = git->getRemoteForBranch(currentBranch);
+      GitConfig gitConfig(mGit);
+      const auto remote = gitConfig.getRemoteForBranch(currentBranch);
 
       if (remote.success)
       {
@@ -324,8 +324,8 @@ void Controls::pushCurrentBranch()
 void Controls::pruneBranches()
 {
    QApplication::setOverrideCursor(QCursor(Qt::WaitCursor));
-   QScopedPointer<GitRemote> git(new GitRemote(mGit));
-   const auto ret = git->prune();
+   GitRemote gitRemote(mGit);
+   const auto ret = gitRemote.prune();
    QApplication::restoreOverrideCursor();
 
    if (ret.success)
@@ -335,8 +335,8 @@ void Controls::pruneBranches()
 QAction *Controls::createGitPlatformAction()
 {
 
-   QScopedPointer<GitConfig> gitConfig(new GitConfig(mGit));
-   const auto remoteUrl = gitConfig->getServerHost();
+   GitConfig gitConfig(mGit);
+   const auto remoteUrl = gitConfig.getServerHost();
    QIcon gitPlatformIcon;
    QString name;
    QString prName;

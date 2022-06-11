@@ -156,9 +156,9 @@ GitExecResult GitBranches::removeRemoteBranch(const QString &branchName)
 
    QLog_Debug("Git", QString("Removing a remote branch: {%1}").arg(branch));
 
-   QScopedPointer<GitConfig> gitConfig(new GitConfig(mGitBase));
+   GitConfig gitConfig(mGitBase);
 
-   auto ret = gitConfig->getRemoteForBranch(branch);
+   auto ret = gitConfig.getRemoteForBranch(branch);
 
    const auto cmd = QString("git push --delete %2 %1").arg(branch, ret.success ? ret.output : QString("origin"));
 

@@ -151,8 +151,8 @@ bool DiffWidget::loadCommitDiff(const QString &sha, const QString &parentSha)
 
    if (!mDiffWidgets.contains(id))
    {
-      QScopedPointer<GitHistory> git(new GitHistory(mGit));
-      const auto ret = git->getCommitDiff(sha, parentSha);
+      GitHistory gitHistory(mGit);
+      const auto ret = gitHistory.getCommitDiff(sha, parentSha);
 
       if (ret.success && !ret.output.isEmpty())
       {

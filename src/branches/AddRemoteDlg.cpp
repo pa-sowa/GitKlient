@@ -1,8 +1,8 @@
 #include "AddRemoteDlg.h"
 #include "ui_AddSubmoduleDlg.h"
 
-#include <GitRemote.h>
 #include <GitQlientStyles.h>
+#include <GitRemote.h>
 
 #include <QMessageBox>
 
@@ -34,7 +34,7 @@ void AddRemoteDlg::accept()
    const auto remoteName = ui->lePath->text();
    const auto remoteUrl = ui->leUrl->text();
 
-   QScopedPointer<GitRemote> git(new GitRemote(mGit));
+   GitRemote git(mGit);
 
    if (remoteName.isEmpty() || remoteUrl.isEmpty())
    {
@@ -42,9 +42,9 @@ void AddRemoteDlg::accept()
           this, tr("Invalid fields"),
           tr("The information provided is incorrect. Please fix the URL and/or the name and submit again."));
    }
-   else if (const auto ret = git->addRemote(remoteUrl, remoteName); ret.success)
+   else if (const auto ret = git.addRemote(remoteUrl, remoteName); ret.success)
    {
-      git->fetch();
+      git.fetch();
 
       QDialog::accept();
    }

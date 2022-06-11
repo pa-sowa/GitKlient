@@ -168,10 +168,10 @@ void MergeWidget::fillButtonFileList(const RevisionFiles &files)
       const auto item = new QListWidgetItem(fileName);
       item->setData(Qt::UserRole, fileInConflict);
 
-      QScopedPointer<GitWip> git(new GitWip(mGit, mGitQlientCache));
+      GitWip git(mGit, mGitQlientCache);
 
       if (fileInConflict && fileDeleted)
-         item->setData(Qt::UserRole + 1, static_cast<int>(git->getFileStatus(fileName).value()));
+         item->setData(Qt::UserRole + 1, static_cast<int>(git.getFileStatus(fileName).value()));
       else
          item->setData(Qt::UserRole + 1, 0);
 
@@ -203,12 +203,12 @@ void MergeWidget::changeDiffView(QListWidgetItem *item)
              "Add file");
       }
 
-      QScopedPointer<GitLocal> git(new GitLocal(mGit));
+      GitLocal git(mGit);
 
       if (resolution == 1)
-         git->stageFile(file);
+         git.stageFile(file);
       else
-         git->removeFile(file);
+         git.removeFile(file);
 
       onConflictResolved(file);
 
@@ -232,13 +232,13 @@ void MergeWidget::abort()
    {
       case ConflictReason::Pull:
       case ConflictReason::Merge: {
-         QScopedPointer<GitMerge> git(new GitMerge(mGit, mGitQlientCache));
-         ret = git->abortMerge();
+         GitMerge git(mGit, mGitQlientCache);
+         ret = git.abortMerge();
          break;
       }
       case ConflictReason::CherryPick: {
-         QScopedPointer<GitLocal> git(new GitLocal(mGit));
-         ret = git->cherryPickAbort();
+         GitLocal git(mGit);
+         ret = git.cherryPickAbort();
          break;
       }
       default:
@@ -309,13 +309,13 @@ void MergeWidget::commit()
       {
          case ConflictReason::Pull:
          case ConflictReason::Merge: {
-            QScopedPointer<GitMerge> git(new GitMerge(mGit, mGitQlientCache));
-            ret = git->applyMerge(msg);
+            GitMerge git(mGit, mGitQlientCache);
+            ret = git.applyMerge(msg);
             break;
          }
          case ConflictReason::CherryPick: {
-            QScopedPointer<GitLocal> git(new GitLocal(mGit));
-            ret = git->cherryPickContinue(msg);
+            GitLocal git(mGit);
+            ret = git.cherryPickContinue(msg);
             break;
          }
          default:
@@ -379,8 +379,8 @@ void MergeWidget::cherryPickCommit()
    auto shas = mPendingShas;
    for (const auto &sha : qAsConst(mPendingShas))
    {
-      QScopedPointer<GitLocal> git(new GitLocal(mGit));
-      const auto ret = git->cherryPickCommit(sha);
+      GitLocal git(mGit);
+      const auto ret = git.cherryPickCommit(sha);
 
       shas.takeFirst();
 
@@ -395,8 +395,8 @@ void MergeWidget::cherryPickCommit()
          {
             const auto wipCommit = mGitQlientCache->commitInfo(CommitInfo::ZERO_SHA);
 
-            QScopedPointer<GitWip> git(new GitWip(mGit, mGitQlientCache));
-            git->updateWip();
+            GitWip git(mGit, mGitQlientCache);
+            git.updateWip();
 
             const auto files = mGitQlientCache->revisionFile(CommitInfo::ZERO_SHA, wipCommit.firstParent());
 

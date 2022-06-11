@@ -69,9 +69,9 @@ GitQlientRepo::GitQlientRepo(const QSharedPointer<GitBase> &git, const QSharedPo
    setWindowTitle("GitQlient");
    setAttribute(Qt::WA_DeleteOnClose);
 
-   QScopedPointer<GitConfig> gitConfig(new GitConfig(mGitBase));
-   const auto serverUrl = gitConfig->getServerHost();
-   const auto repoInfo = gitConfig->getCurrentRepoAndOwner();
+   GitConfig gitConfig(mGitBase);
+   const auto serverUrl = gitConfig.getServerHost();
+   const auto repoInfo = gitConfig.getCurrentRepoAndOwner();
 
    mGitServerCache->init(serverUrl, repoInfo);
 
@@ -190,8 +190,8 @@ void GitQlientRepo::updateUiFromWatcher()
 {
    QLog_Info("UI", QString("Updating the GitQlient UI from watcher"));
 
-   QScopedPointer<GitWip> git(new GitWip(mGitBase, mGitQlientCache));
-   git->updateWip();
+   GitWip git(mGitBase, mGitQlientCache);
+   git.updateWip();
 
    mHistoryWidget->updateUiFromWatcher();
 
@@ -276,9 +276,9 @@ void GitQlientRepo::onRepoLoadFinished(bool fullReload)
 
       mAutoFilesUpdate->start();
 
-      QScopedPointer<GitConfig> git(new GitConfig(mGitBase));
+      GitConfig git(mGitBase);
 
-      if (!git->getGlobalUserInfo().isValid() && !git->getLocalUserInfo().isValid())
+      if (!git.getGlobalUserInfo().isValid() && !git.getLocalUserInfo().isValid())
       {
          QLog_Info("UI", QString("Configuring Git..."));
 
@@ -304,7 +304,7 @@ void GitQlientRepo::onRepoLoadFinished(bool fullReload)
    if (mWaitDlg)
       mWaitDlg->close();
 
-   if (QScopedPointer<GitMerge> gitMerge(new GitMerge(mGitBase, mGitQlientCache)); gitMerge->isInMerge())
+   if (GitMerge(mGitBase, mGitQlientCache).isInMerge())
    {
       mControls->activateMergeWarning();
       showWarningMerge();
@@ -312,7 +312,7 @@ void GitQlientRepo::onRepoLoadFinished(bool fullReload)
       QMessageBox::warning(this, tr("Merge in progress"),
                            tr("There is a merge conflict in progress. Solve the merge before moving on."));
    }
-   else if (QScopedPointer<GitLocal> gitMerge(new GitLocal(mGitBase)); gitMerge->isInCherryPickMerge())
+   else if (GitLocal(mGitBase).isInCherryPickMerge())
    {
       mControls->activateMergeWarning();
       showCherryPickConflict();
@@ -368,8 +368,8 @@ void GitQlientRepo::showWarningMerge()
 
    const auto wipCommit = mGitQlientCache->commitInfo(CommitInfo::ZERO_SHA);
 
-   QScopedPointer<GitWip> git(new GitWip(mGitBase, mGitQlientCache));
-   git->updateWip();
+   GitWip git(mGitBase, mGitQlientCache);
+   git.updateWip();
 
    const auto file = mGitQlientCache->revisionFile(CommitInfo::ZERO_SHA, wipCommit.firstParent());
 
@@ -384,8 +384,8 @@ void GitQlientRepo::showCherryPickConflict(const QStringList &shas)
 
    const auto wipCommit = mGitQlientCache->commitInfo(CommitInfo::ZERO_SHA);
 
-   QScopedPointer<GitWip> git(new GitWip(mGitBase, mGitQlientCache));
-   git->updateWip();
+   GitWip git(mGitBase, mGitQlientCache);
+   git.updateWip();
 
    const auto files = mGitQlientCache->revisionFile(CommitInfo::ZERO_SHA, wipCommit.firstParent());
 
@@ -400,8 +400,8 @@ void GitQlientRepo::showPullConflict()
 
    const auto wipCommit = mGitQlientCache->commitInfo(CommitInfo::ZERO_SHA);
 
-   QScopedPointer<GitWip> git(new GitWip(mGitBase, mGitQlientCache));
-   git->updateWip();
+   GitWip git(mGitBase, mGitQlientCache);
+   git.updateWip();
 
    const auto files = mGitQlientCache->revisionFile(CommitInfo::ZERO_SHA, wipCommit.firstParent());
 
@@ -421,9 +421,9 @@ bool GitQlientRepo::configureGitServer() const
 
    if (!mGitServerWidget->isConfigured())
    {
-      QScopedPointer<GitConfig> gitConfig(new GitConfig(mGitBase));
-      const auto serverUrl = gitConfig->getServerHost();
-      const auto repoInfo = gitConfig->getCurrentRepoAndOwner();
+      GitConfig gitConfig(mGitBase);
+      const auto serverUrl = gitConfig.getServerHost();
+      const auto repoInfo = gitConfig.getCurrentRepoAndOwner();
 
       GitQlientSettings settings("");
       const auto user = settings.globalValue(QString("%1/user").arg(serverUrl)).toString();
@@ -490,8 +490,8 @@ void GitQlientRepo::updateWip()
 {
    mHistoryWidget->resetWip();
 
-   QScopedPointer<GitWip> git(new GitWip(mGitBase, mGitQlientCache));
-   git->updateWip();
+   GitWip git(mGitBase, mGitQlientCache);
+   git.updateWip();
 
    mHistoryWidget->updateUiFromWatcher();
 }

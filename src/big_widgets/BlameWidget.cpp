@@ -106,8 +106,8 @@ void BlameWidget::showFileHistory(const QString &filePath)
 {
    if (!mTabsMap.contains(filePath))
    {
-      QScopedPointer<GitHistory> git(new GitHistory(mGit));
-      auto ret = git->history(filePath);
+      GitHistory gitHistory(mGit);
+      auto ret = gitHistory.history(filePath);
 
       if (ret.success)
       {
@@ -183,8 +183,8 @@ void BlameWidget::reloadHistory(int tabIndex)
       const auto sha = blameWidget->getCurrentSha();
       const auto file = blameWidget->getCurrentFile();
 
-      QScopedPointer<GitHistory> git(new GitHistory(mGit));
-      const auto ret = git->history(file);
+      GitHistory git(mGit);
+      const auto ret = git.history(file);
 
       if (ret.success)
       {

@@ -27,10 +27,10 @@ PullDlg::~PullDlg()
 
 void PullDlg::accept()
 {
-   QScopedPointer<GitRemote> git(new GitRemote(mGit));
+   GitRemote remote(mGit);
 
    QApplication::setOverrideCursor(QCursor(Qt::WaitCursor));
-   const auto ret = git->pull();
+   const auto ret = remote.pull();
    QApplication::restoreOverrideCursor();
 
    if (ret.success)

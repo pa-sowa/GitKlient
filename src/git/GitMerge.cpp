@@ -45,8 +45,8 @@ GitExecResult GitMerge::merge(const QString &into, QStringList sources)
 
    if (retMerge.success)
    {
-      QScopedPointer<GitWip> git(new GitWip(mGitBase, mCache));
-      git->updateWip();
+      GitWip git(mGitBase, mCache);
+      git.updateWip();
    }
 
    return retMerge;
@@ -111,8 +111,8 @@ GitExecResult GitMerge::squashMerge(const QString &into, QStringList sources, co
          mGitBase->run(cmd);
       }
 
-      QScopedPointer<GitWip> git(new GitWip(mGitBase, mCache));
-      git->updateWip();
+      GitWip git(mGitBase, mCache);
+      git.updateWip();
    }
 
    return retMerge;

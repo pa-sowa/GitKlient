@@ -37,8 +37,8 @@ UnstagedMenu::UnstagedMenu(const QSharedPointer<GitBase> &git, const QString &fi
 
               if (msgBoxRet == QMessageBox::Yes)
               {
-                 QScopedPointer<GitLocal> git(new GitLocal(mGit));
-                 const auto ret = git->checkoutFile(mFileName);
+                 GitLocal git(mGit);
+                 const auto ret = git.checkoutFile(mFileName);
 
                  if (ret)
                     emit changeReverted(mFileName);

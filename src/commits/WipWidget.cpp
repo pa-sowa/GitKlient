@@ -29,8 +29,8 @@ void WipWidget::configure(const QString &sha)
 {
    const auto commit = mCache->commitInfo(sha);
 
-   QScopedPointer<GitWip> git(new GitWip(mGit, mCache));
-   git->updateWip();
+   GitWip git(mGit, mCache);
+   git.updateWip();
 
    const auto files = mCache->revisionFile(CommitInfo::ZERO_SHA, commit.firstParent());
 
@@ -61,26 +61,26 @@ void WipWidget::commitChanges()
       {
          const auto revInfo = mCache->commitInfo(CommitInfo::ZERO_SHA);
 
-         QScopedPointer<GitWip> git(new GitWip(mGit, mCache));
-         git->updateWip();
+         GitWip git(mGit, mCache);
+         git.updateWip();
 
          if (const auto files = mCache->revisionFile(CommitInfo::ZERO_SHA, revInfo.firstParent()); files)
          {
             const auto lastShaBeforeCommit = mGit->getLastCommit().output.trimmed();
             QApplication::setOverrideCursor(QCursor(Qt::WaitCursor));
-            QScopedPointer<GitLocal> gitLocal(new GitLocal(mGit));
-            const auto ret = gitLocal->commitFiles(selFiles, files.value(), msg);
+            GitLocal gitLocal(mGit);
+            const auto ret = gitLocal.commitFiles(selFiles, files.value(), msg);
             QApplication::restoreOverrideCursor();
 
             if (ret.success)
             {
                // Adding new commit in the log
                const auto currentSha = mGit->getLastCommit().output.trimmed();
-               QScopedPointer<GitConfig> gitConfig(new GitConfig(mGit));
-               auto committer = gitConfig->getLocalUserInfo();
+               GitConfig gitConfig(mGit);
+               auto committer = gitConfig.getLocalUserInfo();
 
                if (committer.mUserEmail.isEmpty() || committer.mUserName.isEmpty())
-                  committer = gitConfig->getGlobalUserInfo();
+                  committer = gitConfig.getGlobalUserInfo();
 
                const auto message = msg.split("\n\n");
 
@@ -97,8 +97,8 @@ void WipWidget::commitChanges()
                mCache->deleteReference(lastShaBeforeCommit, References::Type::LocalBranch, mGit->getCurrentBranch());
                mCache->insertReference(currentSha, References::Type::LocalBranch, mGit->getCurrentBranch());
 
-               QScopedPointer<GitHistory> gitHistory(new GitHistory(mGit));
-               const auto ret = gitHistory->getDiffFiles(currentSha, lastShaBeforeCommit);
+               GitHistory gitHistory(mGit);
+               const auto ret = gitHistory.getDiffFiles(currentSha, lastShaBeforeCommit);
 
                mCache->insertRevisionFiles(currentSha, lastShaBeforeCommit, RevisionFiles(ret.output));
 
@@ -111,7 +111,7 @@ void WipWidget::commitChanges()
                ui->leCommitTitle->clear();
                ui->teDescription->clear();
 
-               git->updateWip();
+               git.updateWip();
 
                emit mCache->signalCacheUpdated();
                emit changesCommitted();

@@ -19,11 +19,11 @@ void GitCredentials::configureStorage(const QString &user, const QString &passwo
 
    if (started)
    {
-      QScopedPointer<GitConfig> gitConf(new GitConfig(gitBase));
+      GitConfig gitConfig(gitBase);
 
       QTextStream out(&storeProcess);
       out << "protocol=https" << endl;
-      out << "host=" << gitConf->getServerHost().toUtf8() << endl;
+      out << "host=" << gitConfig.getServerHost().toUtf8() << endl;
       out << "username=" << user.toUtf8() << endl;
       out << "password=" << password.toUtf8() << endl;
       out << endl;

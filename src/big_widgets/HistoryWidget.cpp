@@ -58,9 +58,9 @@ HistoryWidget::HistoryWidget(const QSharedPointer<GitCache> &cache, const QShare
 {
    setAttribute(Qt::WA_DeleteOnClose);
 
-   QScopedPointer<GitConfig> gitConfig(new GitConfig(mGit));
-   const auto localUserInfo = gitConfig->getLocalUserInfo();
-   const auto globalUserInfo = gitConfig->getGlobalUserInfo();
+   GitConfig gitConfig(mGit);
+   const auto localUserInfo = gitConfig.getLocalUserInfo();
+   const auto globalUserInfo = gitConfig.getGlobalUserInfo();
 
    mUserName->setText(localUserInfo.mUserName.isEmpty() ? globalUserInfo.mUserName : localUserInfo.mUserName);
    mUserEmail->setText(localUserInfo.mUserEmail.isEmpty() ? globalUserInfo.mUserEmail : localUserInfo.mUserEmail);
@@ -326,8 +326,8 @@ void HistoryWidget::onOpenFullDiff(const QString &sha)
    if (sha == CommitInfo::ZERO_SHA)
    {
       const auto commit = mCache->commitInfo(CommitInfo::ZERO_SHA);
-      QScopedPointer<GitHistory> git(new GitHistory(mGit));
-      const auto ret = git->getCommitDiff(CommitInfo::ZERO_SHA, commit.firstParent());
+      GitHistory git(mGit);
+      const auto ret = git.getCommitDiff(CommitInfo::ZERO_SHA, commit.firstParent());
 
       if (ret.success && !ret.output.isEmpty())
       {
@@ -364,8 +364,8 @@ void HistoryWidget::cleanCommitPanels()
 
 void HistoryWidget::onRevertedChanges()
 {
-   QScopedPointer<GitWip> git(new GitWip(mGit, mCache));
-   git->updateWip();
+   GitWip git(mGit, mCache);
+   git.updateWip();
 
    updateUiFromWatcher();
 }
@@ -443,11 +443,11 @@ void HistoryWidget::onShowAllUpdated(bool showAll)
 void HistoryWidget::mergeBranch(const QString &current, const QString &branchToMerge)
 {
    QApplication::setOverrideCursor(QCursor(Qt::WaitCursor));
-   QScopedPointer<GitMerge> git(new GitMerge(mGit, mCache));
-   const auto ret = git->merge(current, { branchToMerge });
+   GitMerge git(mGit, mCache);
+   const auto ret = git.merge(current, { branchToMerge });
 
-   QScopedPointer<GitWip> gitWip(new GitWip(mGit, mCache));
-   gitWip->updateWip();
+   GitWip gitWip(mGit, mCache);
+   gitWip.updateWip();
 
    QApplication::restoreOverrideCursor();
 
@@ -457,11 +457,11 @@ void HistoryWidget::mergeBranch(const QString &current, const QString &branchToM
 void HistoryWidget::mergeSquashBranch(const QString &current, const QString &branchToMerge)
 {
    QApplication::setOverrideCursor(QCursor(Qt::WaitCursor));
-   QScopedPointer<GitMerge> git(new GitMerge(mGit, mCache));
-   const auto ret = git->squashMerge(current, { branchToMerge });
+   GitMerge git(mGit, mCache);
+   const auto ret = git.squashMerge(current, { branchToMerge });
 
-   QScopedPointer<GitWip> gitWip(new GitWip(mGit, mCache));
-   gitWip->updateWip();
+   GitWip gitWip(mGit, mCache);
+   gitWip.updateWip();
 
    QApplication::restoreOverrideCursor();
 
@@ -546,8 +546,8 @@ void HistoryWidget::cherryPickCommit()
    if (auto commit = mCache->commitInfo(mSearchInput->text()); commit.isValid())
    {
       const auto lastShaBeforeCommit = mGit->getLastCommit().output.trimmed();
-      const auto git = QScopedPointer<GitLocal>(new GitLocal(mGit));
-      const auto ret = git->cherryPickCommit(commit.sha);
+      const auto git = GitLocal(mGit);
+      const auto ret = git.cherryPickCommit(commit.sha);
 
       if (ret.success)
       {
@@ -559,8 +559,8 @@ void HistoryWidget::cherryPickCommit()
          mCache->deleteReference(lastShaBeforeCommit, References::Type::LocalBranch, mGit->getCurrentBranch());
          mCache->insertReference(commit.sha, References::Type::LocalBranch, mGit->getCurrentBranch());
 
-         QScopedPointer<GitHistory> gitHistory(new GitHistory(mGit));
-         const auto ret = gitHistory->getDiffFiles(commit.sha, lastShaBeforeCommit);
+         GitHistory gitHistory(mGit);
+         const auto ret = gitHistory.getDiffFiles(commit.sha, lastShaBeforeCommit);
 
          mCache->insertRevisionFiles(commit.sha, lastShaBeforeCommit, RevisionFiles(ret.output));
 
@@ -589,8 +589,8 @@ void HistoryWidget::cherryPickCommit()
    else
    {
       const auto lastShaBeforeCommit = mGit->getLastCommit().output.trimmed();
-      const auto git = QScopedPointer<GitLocal>(new GitLocal(mGit));
-      const auto ret = git->cherryPickCommit(mSearchInput->text());
+      const auto git = GitLocal(mGit);
+      const auto ret = git.cherryPickCommit(mSearchInput->text());
 
       if (ret.success)
       {
@@ -602,8 +602,8 @@ void HistoryWidget::cherryPickCommit()
          mCache->deleteReference(lastShaBeforeCommit, References::Type::LocalBranch, mGit->getCurrentBranch());
          mCache->insertReference(commit.sha, References::Type::LocalBranch, mGit->getCurrentBranch());
 
-         QScopedPointer<GitHistory> gitHistory(new GitHistory(mGit));
-         const auto ret = gitHistory->getDiffFiles(commit.sha, lastShaBeforeCommit);
+         GitHistory gitHistory(mGit);
+         const auto ret = gitHistory.getDiffFiles(commit.sha, lastShaBeforeCommit);
 
          mCache->insertRevisionFiles(commit.sha, lastShaBeforeCommit, RevisionFiles(ret.output));
 

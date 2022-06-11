@@ -134,13 +134,13 @@ ConfigDialog::ConfigDialog(const QSharedPointer<GitBase> &git, QWidget *parent)
       ui->leBsToken->setText(token);
    }
 
-   QScopedPointer<GitConfig> gitConfig(new GitConfig(mGit));
+   GitConfig gitConfig(mGit);
 
-   const auto url = gitConfig->getServerUrl();
+   const auto url = gitConfig.getServerUrl();
    ui->credentialsFrames->setVisible(url.startsWith("https"));
 
-   const auto mergeStrategyFF = gitConfig->getGitValue("pull.ff").output;
-   const auto mergeStrategyRebase = gitConfig->getGitValue("pull.rebase").output;
+   const auto mergeStrategyFF = gitConfig.getGitValue("pull.ff").output;
+   const auto mergeStrategyRebase = gitConfig.getGitValue("pull.rebase").output;
 
    if (mergeStrategyFF.isEmpty())
    {
@@ -176,21 +176,21 @@ void ConfigDialog::onCredentialsOptionChanged(QAbstractButton *button)
 
 void ConfigDialog::onPullStrategyChanged(int index)
 {
-   QScopedPointer<GitConfig> gitConfig(new GitConfig(mGit));
+   GitConfig gitConfig(mGit);
 
    switch (index)
    {
       case 0:
-         gitConfig->unset("pull.ff");
-         gitConfig->setLocalData("pull.rebase", "false");
+         gitConfig.unset("pull.ff");
+         gitConfig.setLocalData("pull.rebase", "false");
          break;
       case 1:
-         gitConfig->unset("pull.ff");
-         gitConfig->setLocalData("pull.rebase", "true");
+         gitConfig.unset("pull.ff");
+         gitConfig.setLocalData("pull.rebase", "true");
          break;
       case 2:
-         gitConfig->unset("pull.rebase");
-         gitConfig->setLocalData("pull.ff", "only");
+         gitConfig.unset("pull.rebase");
+         gitConfig.setLocalData("pull.ff", "only");
          break;
    }
 }

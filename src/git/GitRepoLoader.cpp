@@ -217,7 +217,8 @@ void GitRepoLoader::requestRevisions()
 
    const auto maxCommits = mSettings->localValue("MaxCommits", 0).toInt();
    const auto commitsToRetrieve = maxCommits != 0 ? QString::fromUtf8("-n %1").arg(maxCommits)
-                                                  : mShowAll ? QString("--all") : mGitBase->getCurrentBranch();
+       : mShowAll                                 ? QString("--all")
+                                                  : mGitBase->getCurrentBranch();
 
    QString order;
 
@@ -254,8 +255,8 @@ void GitRepoLoader::processRevisions(QByteArray ba)
 {
    QLog_Info("Git", "Revisions received!");
 
-   QScopedPointer<GitConfig> gitConfig(new GitConfig(mGitBase));
-   const auto serverUrl = gitConfig->getServerHost();
+   GitConfig gitConfig(mGitBase);
+   const auto serverUrl = gitConfig.getServerHost();
 
    if (serverUrl.contains("github"))
       QLog_Info("Git", "Requesting PR status!");
@@ -267,14 +268,14 @@ void GitRepoLoader::processRevisions(QByteArray ba)
    if (!initialized)
       emit signalLoadingStarted();
 
-   const auto ret = gitConfig->getGitValue("log.showSignature");
+   const auto ret = gitConfig.getGitValue("log.showSignature");
    const auto showSignature = ret.success ? ret.output.contains("true") : false;
    auto commits = showSignature ? processSignedLog(ba) : processUnsignedLog(ba);
-   QScopedPointer<GitWip> git(new GitWip(mGitBase, mRevCache));
-   const auto files = git->getUntrackedFiles();
+   GitWip git(mGitBase, mRevCache);
+   const auto files = git.getUntrackedFiles();
 
    mRevCache->setUntrackedFilesList(std::move(files));
-   const auto info = git->getWipInfo().value();
+   const auto info = git.getWipInfo().value();
 
    mRevCache->setup(info.first, info.second, std::move(commits));
 

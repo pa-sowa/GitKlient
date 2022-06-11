@@ -1,8 +1,8 @@
 #include "TagDlg.h"
 #include "ui_TagDlg.h"
 
-#include <GitTags.h>
 #include <GitQlientStyles.h>
+#include <GitTags.h>
 
 #include <QFile>
 
@@ -40,8 +40,8 @@ void TagDlg::accept()
 
       tagMessage = tagMessage.trimmed();
 
-      QScopedPointer<GitTags> git(new GitTags(mGit));
-      auto ret = git->addTag(tagName, tagMessage, mSha);
+      GitTags git(mGit);
+      auto ret = git.addTag(tagName, tagMessage, mSha);
 
       if (ret.success)
          QDialog::accept();

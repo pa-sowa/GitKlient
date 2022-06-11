@@ -1,15 +1,15 @@
 #include "SubmodulesContextMenu.h"
 
-#include <BranchDlg.h>
-#include <GitStashes.h>
-#include <GitQlientStyles.h>
 #include <AddSubmoduleDlg.h>
-#include <GitSubmodules.h>
+#include <BranchDlg.h>
 #include <GitBase.h>
+#include <GitQlientStyles.h>
+#include <GitStashes.h>
+#include <GitSubmodules.h>
 
 #include <QApplication>
-#include <QModelIndex>
 #include <QMessageBox>
+#include <QModelIndex>
 
 SubmodulesContextMenu::SubmodulesContextMenu(const QSharedPointer<GitBase> &git, const QModelIndex &index,
                                              QWidget *parent)
@@ -35,8 +35,8 @@ SubmodulesContextMenu::SubmodulesContextMenu(const QSharedPointer<GitBase> &git,
       const auto updateSubmoduleAction = addAction(tr("Update"));
       connect(updateSubmoduleAction, &QAction::triggered, this, [this, submoduleName]() {
          QApplication::setOverrideCursor(QCursor(Qt::WaitCursor));
-         QScopedPointer<GitSubmodules> git(new GitSubmodules(mGit));
-         const auto ret = git->submoduleUpdate(submoduleName);
+         GitSubmodules git(mGit);
+         const auto ret = git.submoduleUpdate(submoduleName);
          QApplication::restoreOverrideCursor();
 
          if (ret)
@@ -50,8 +50,8 @@ SubmodulesContextMenu::SubmodulesContextMenu(const QSharedPointer<GitBase> &git,
       const auto deleteSubmoduleAction = addAction(tr("Delete"));
       connect(deleteSubmoduleAction, &QAction::triggered, this, [this, submoduleName]() {
          QApplication::setOverrideCursor(QCursor(Qt::WaitCursor));
-         QScopedPointer<GitSubmodules> git(new GitSubmodules(mGit));
-         const auto ret = git->submoduleRemove(submoduleName);
+         GitSubmodules git(mGit);
+         const auto ret = git.submoduleRemove(submoduleName);
          QApplication::restoreOverrideCursor();
 
          if (ret)
@@ -68,8 +68,8 @@ SubmodulesContextMenu::SubmodulesContextMenu(const QSharedPointer<GitBase> &git,
    const auto updateSubmoduleAction = addAction(tr("Update"));
    connect(updateSubmoduleAction, &QAction::triggered, this, [this, submoduleName]() {
       QApplication::setOverrideCursor(QCursor(Qt::WaitCursor));
-      QScopedPointer<GitSubmodules> git(new GitSubmodules(mGit));
-      const auto ret = git->submoduleUpdate(submoduleName);
+      GitSubmodules git(mGit);
+      const auto ret = git.submoduleUpdate(submoduleName);
       QApplication::restoreOverrideCursor();
 
       if (ret)

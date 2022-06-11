@@ -72,8 +72,8 @@ void SquashDlg::accept()
    {
       const auto revInfo = mCache->commitInfo(CommitInfo::ZERO_SHA);
 
-      QScopedPointer<GitWip> git(new GitWip(mGit, mCache));
-      git->updateWip();
+      GitWip gitWip(mGit, mCache);
+      gitWip.updateWip();
 
       const auto lastChild = mCache->commitInfo(mShas.last());
 
@@ -84,46 +84,46 @@ void SquashDlg::accept()
          if (lastChild.isInWorkingBranch())
          {
             // Reset soft to the first commit to squash
-            QScopedPointer<GitLocal> gitLocal(new GitLocal(mGit));
-            gitLocal->resetCommit(mShas.constFirst(), GitLocal::CommitResetType::SOFT);
-            gitLocal->ammend(msg);
+            GitLocal gitLocal(mGit);
+            gitLocal.resetCommit(mShas.constFirst(), GitLocal::CommitResetType::SOFT);
+            gitLocal.ammend(msg);
          }
          else
          {
-            QScopedPointer<GitBranches> gitBranches(new GitBranches(mGit));
+            GitBranches gitBranches(mGit);
 
             // Create auxiliary branch for rebase
             const auto auxBranch1 = QUuid::createUuid().toString();
             const auto commitOfAuxBranch1 = lastChild.getFirstChildSha();
-            gitBranches->createBranchAtCommit(commitOfAuxBranch1, auxBranch1);
+            gitBranches.createBranchAtCommit(commitOfAuxBranch1, auxBranch1);
 
             // Create auxiliary branch for merge squash
             const auto auxBranch2 = QUuid::createUuid().toString();
-            gitBranches->createBranchAtCommit(mShas.last(), auxBranch2);
+            gitBranches.createBranchAtCommit(mShas.last(), auxBranch2);
 
             // Create auxiliary branch for final rebase
             const auto auxBranch3 = QUuid::createUuid().toString();
             const auto lastCommit = mCache->commitInfo(CommitInfo::ZERO_SHA).firstParent();
-            gitBranches->createBranchAtCommit(lastCommit, auxBranch3);
+            gitBranches.createBranchAtCommit(lastCommit, auxBranch3);
 
             // Reset hard to the first commit to squash
-            QScopedPointer<GitLocal> gitLocal(new GitLocal(mGit));
-            gitLocal->resetCommit(mShas.constFirst(), GitLocal::CommitResetType::HARD);
+            GitLocal gitLocal(mGit);
+            gitLocal.resetCommit(mShas.constFirst(), GitLocal::CommitResetType::HARD);
 
             // Merge squash auxiliary branch 2
-            QScopedPointer<GitMerge> gitMerge(new GitMerge(mGit, mCache));
-            const auto ret = gitMerge->squashMerge(mGit->getCurrentBranch(), { auxBranch2 }, msg);
+            GitMerge gitMerge(mGit, mCache);
+            const auto ret = gitMerge.squashMerge(mGit->getCurrentBranch(), { auxBranch2 }, msg);
 
-            gitBranches->removeLocalBranch(auxBranch2);
+            gitBranches.removeLocalBranch(auxBranch2);
 
             // Rebase auxiliary branch 1
             const auto destBranch = mGit->getCurrentBranch();
-            gitLocal->cherryPickCommit(commitOfAuxBranch1);
-            gitBranches->rebaseOnto(destBranch, auxBranch1, auxBranch3);
-            gitBranches->removeLocalBranch(auxBranch1);
-            gitBranches->checkoutLocalBranch(destBranch);
-            gitMerge->merge(destBranch, { auxBranch3 });
-            gitBranches->removeLocalBranch(auxBranch3);
+            gitLocal.cherryPickCommit(commitOfAuxBranch1);
+            gitBranches.rebaseOnto(destBranch, auxBranch1, auxBranch3);
+            gitBranches.removeLocalBranch(auxBranch1);
+            gitBranches.checkoutLocalBranch(destBranch);
+            gitMerge.merge(destBranch, { auxBranch3 });
+            gitBranches.removeLocalBranch(auxBranch3);
          }
       }
 

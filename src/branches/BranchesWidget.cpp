@@ -791,8 +791,8 @@ void BranchesWidget::processStashes()
 {
    mStashesList->clear();
 
-   QScopedPointer<GitStashes> git(new GitStashes(mGit));
-   const auto stashes = git->getStashes();
+   GitStashes git(mGit);
+   const auto stashes = git.getStashes();
 
    QLog_Info("UI", QString("Fetching {%1} stashes").arg(stashes.count()));
 
@@ -813,8 +813,8 @@ void BranchesWidget::processSubmodules()
 {
    mSubmodulesList->clear();
 
-   QScopedPointer<GitSubmodules> git(new GitSubmodules(mGit));
-   const auto submodules = git->getSubmodules();
+   GitSubmodules git(mGit);
+   const auto submodules = git.getSubmodules();
 
    QLog_Info("UI", QString("Fetching {%1} submodules").arg(submodules.count()));
 
@@ -831,9 +831,9 @@ void BranchesWidget::processSubtrees()
 {
    mSubtreeList->clear();
 
-   QScopedPointer<GitSubtree> git(new GitSubtree(mGit));
+   GitSubtree git(mGit);
 
-   const auto ret = git->list();
+   const auto ret = git.list();
 
    if (ret.success)
    {
@@ -895,8 +895,8 @@ void BranchesWidget::showTagsContextMenu(const QPoint &p)
       const auto removeTagAction = menu->addAction(tr("Remove tag"));
       connect(removeTagAction, &QAction::triggered, this, [this, tagName, isRemote]() {
          QApplication::setOverrideCursor(QCursor(Qt::WaitCursor));
-         QScopedPointer<GitTags> git(new GitTags(mGit));
-         const auto ret = git->removeTag(tagName, isRemote);
+         GitTags git(mGit);
+         const auto ret = git.removeTag(tagName, isRemote);
          QApplication::restoreOverrideCursor();
 
          if (ret.success)
@@ -907,8 +907,8 @@ void BranchesWidget::showTagsContextMenu(const QPoint &p)
       pushTagAction->setEnabled(!isRemote);
       connect(pushTagAction, &QAction::triggered, this, [this, tagName]() {
          QApplication::setOverrideCursor(QCursor(Qt::WaitCursor));
-         QScopedPointer<GitTags> git(new GitTags(mGit));
-         const auto ret = git->pushTag(tagName);
+         GitTags git(mGit);
+         const auto ret = git.pushTag(tagName);
          QApplication::restoreOverrideCursor();
 
          if (ret.success)
@@ -961,8 +961,8 @@ void BranchesWidget::showSubtreesContextMenu(const QPoint &p)
          const auto prefix = index.data().toString();
          const auto subtreeData = getSubtreeData(prefix);
 
-         QScopedPointer<GitSubtree> git(new GitSubtree(mGit));
-         const auto ret = git->pull(subtreeData.first, subtreeData.second, prefix);
+         GitSubtree git(mGit);
+         const auto ret = git.pull(subtreeData.first, subtreeData.second, prefix);
          QApplication::restoreOverrideCursor();
 
          if (ret.success)
@@ -976,7 +976,7 @@ void BranchesWidget::showSubtreesContextMenu(const QPoint &p)
 
          const auto subtreeData = getSubtreeData(index.data().toString());
 
-         QScopedPointer<GitSubtree> git(new GitSubtree(mGit));
+         GitSubtree git(mGit);
          const auto ret = git->pull(subtreeData.first, subtreeData.second);
          QApplication::restoreOverrideCursor();
 
@@ -990,8 +990,8 @@ void BranchesWidget::showSubtreesContextMenu(const QPoint &p)
          const auto prefix = index.data().toString();
          const auto subtreeData = getSubtreeData(prefix);
 
-         QScopedPointer<GitSubtree> git(new GitSubtree(mGit));
-         const auto ret = git->push(subtreeData.first, subtreeData.second, prefix);
+         GitSubtree git(mGit);
+         const auto ret = git.push(subtreeData.first, subtreeData.second, prefix);
          QApplication::restoreOverrideCursor();
 
          if (ret.success)
@@ -1077,8 +1077,8 @@ void BranchesWidget::onStashClicked(QListWidgetItem *item)
 
 void BranchesWidget::onStashSelected(const QString &stashId)
 {
-   QScopedPointer<GitTags> git(new GitTags(mGit));
-   const auto sha = git->getTagCommit(stashId).output;
+   GitTags git(mGit);
+   const auto sha = git.getTagCommit(stashId).output;
 
    emit signalSelectCommit(sha);
 }

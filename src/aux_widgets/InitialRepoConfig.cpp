@@ -25,9 +25,9 @@ InitialRepoConfig::InitialRepoConfig(const QSharedPointer<GitBase> &git,
    ui->updateOnPull->setChecked(settings->localValue("UpdateOnPull", false).toBool());
    ui->sbMaxCommits->setValue(settings->localValue("MaxCommits", 0).toInt());
 
-   QScopedPointer<GitConfig> gitConfig(new GitConfig(git));
+   GitConfig gitConfig(git);
 
-   const auto url = gitConfig->getServerUrl();
+   const auto url = gitConfig.getServerUrl();
    ui->credentialsFrames->setVisible(url.startsWith("https"));
 
    connect(ui->buttonGroup, SIGNAL(buttonClicked(QAbstractButton *)), this,

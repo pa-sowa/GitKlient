@@ -32,16 +32,16 @@ void AmendWidget::configure(const QString &sha)
    if (commit.parentsCount() <= 0)
       return;
 
-   QScopedPointer<GitWip> git(new GitWip(mGit, mCache));
-   git->updateWip();
+   GitWip git(mGit, mCache);
+   git.updateWip();
 
    const auto files = mCache->revisionFile(CommitInfo::ZERO_SHA, sha);
    auto amendFiles = mCache->revisionFile(sha, commit.firstParent());
 
    if (!amendFiles)
    {
-      QScopedPointer<GitHistory> git(new GitHistory(mGit));
-      const auto ret = git->getDiffFiles(mCurrentSha, commit.firstParent());
+      GitHistory git(mGit);
+      const auto ret = git.getDiffFiles(mCurrentSha, commit.firstParent());
 
       if (ret.success)
       {
@@ -107,8 +107,8 @@ void AmendWidget::commitChanges()
       }
       else if (checkMsg(msg))
       {
-         QScopedPointer<GitWip> git(new GitWip(mGit, mCache));
-         git->updateWip();
+         GitWip git(mGit, mCache);
+         git.updateWip();
 
          const auto files = mCache->revisionFile(CommitInfo::ZERO_SHA, mCurrentSha);
 
@@ -117,8 +117,8 @@ void AmendWidget::commitChanges()
             const auto author = QString("%1<%2>").arg(ui->leAuthorName->text(), ui->leAuthorEmail->text());
             QApplication::setOverrideCursor(QCursor(Qt::WaitCursor));
 
-            QScopedPointer<GitLocal> gitLocal(new GitLocal(mGit));
-            const auto ret = gitLocal->ammendCommit(selFiles, files.value(), msg, author);
+            GitLocal gitLocal(mGit);
+            const auto ret = gitLocal.ammendCommit(selFiles, files.value(), msg, author);
             QApplication::restoreOverrideCursor();
 
             emit logReload();
@@ -138,8 +138,8 @@ void AmendWidget::commitChanges()
 
                mCache->updateCommit(oldSha, std::move(commit));
 
-               QScopedPointer<GitHistory> git(new GitHistory(mGit));
-               const auto ret = git->getDiffFiles(mCurrentSha, commit.firstParent());
+               GitHistory git(mGit);
+               const auto ret = git.getDiffFiles(mCurrentSha, commit.firstParent());
 
                mCache->insertRevisionFiles(mCurrentSha, commit.firstParent(), RevisionFiles(ret.output));
 

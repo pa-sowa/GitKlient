@@ -65,8 +65,8 @@ void ConflictButton::setInConflict(bool inConflict)
 
 void ConflictButton::resolveConflict()
 {
-   QScopedPointer<GitLocal> git(new GitLocal(mGit));
-   const auto ret = git->stageFile(mFileName);
+   GitLocal local(mGit);
+   const auto ret = local.stageFile(mFileName);
 
    if (ret.success)
    {

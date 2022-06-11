@@ -431,12 +431,12 @@ void GitQlient::onSuccessOpen(const QString &fullPath)
 void GitQlient::conditionallyOpenPreConfigDlg(const QSharedPointer<GitBase> &git,
                                               const QSharedPointer<GitQlientSettings> &settings)
 {
-   QScopedPointer<GitConfig> config(new GitConfig(git));
+   GitConfig config(git);
 
    const auto showDlg = settings->localValue("ShowInitConfigDialog", true).toBool();
    const auto maxCommits = settings->localValue("MaxCommits", -1).toInt();
 
-   if (maxCommits == -1 || (config->getServerHost().contains("https") && showDlg))
+   if (maxCommits == -1 || (config.getServerHost().contains("https") && showDlg))
    {
       const auto preConfig = new InitialRepoConfig(git, settings, this);
       preConfig->exec();

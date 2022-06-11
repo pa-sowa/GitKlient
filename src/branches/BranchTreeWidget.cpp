@@ -66,8 +66,8 @@ void BranchTreeWidget::showBranchesContextMenu(const QPoint &pos)
          const auto menu = new QMenu(this);
          const auto removeRemote = menu->addAction(tr("Remove remote"));
          connect(removeRemote, &QAction::triggered, this, [this, item]() {
-            QScopedPointer<GitRemote> git(new GitRemote(mGit));
-            if (const auto ret = git->removeRemote(item->text(0)); ret.success)
+            GitRemote git(mGit);
+            if (const auto ret = git.removeRemote(item->text(0)); ret.success)
             {
                mCache->deleteReference(item->data(0, ShaRole).toString(), References::Type::RemoteBranches,
                                        item->text(0));
@@ -118,9 +118,9 @@ void BranchTreeWidget::checkoutBranch(QTreeWidgetItem *item)
       {
          const auto isLocal = item->data(0, LocalBranchRole).toBool();
          QApplication::setOverrideCursor(QCursor(Qt::WaitCursor));
-         QScopedPointer<GitBranches> git(new GitBranches(mGit));
+         GitBranches git(mGit);
          const auto ret
-             = isLocal ? git->checkoutLocalBranch(branchName.remove("origin/")) : git->checkoutRemoteBranch(branchName);
+             = isLocal ? git.checkoutLocalBranch(branchName.remove("origin/")) : git.checkoutRemoteBranch(branchName);
          QApplication::restoreOverrideCursor();
 
          const auto output = ret.output;
@@ -206,8 +206,8 @@ void BranchTreeWidget::showDeleteFolderMenu(QTreeWidgetItem *item, const QPoint 
          {
             const auto type = mLocal ? References::Type::LocalBranch : References::Type::RemoteBranches;
             const auto sha = mCache->getShaOfReference(branch, type);
-            QScopedPointer<GitBranches> git(new GitBranches(mGit));
-            const auto ret2 = mLocal ? git->removeLocalBranch(branch) : git->removeRemoteBranch(branch);
+            GitBranches git(mGit);
+            const auto ret2 = mLocal ? git.removeLocalBranch(branch) : git.removeRemoteBranch(branch);
 
             if (ret2.success)
             {

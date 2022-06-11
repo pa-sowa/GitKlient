@@ -18,13 +18,13 @@ GitConfigDlg::GitConfigDlg(const QSharedPointer<GitBase> &gitBase, QWidget *pare
    setWindowFlags(Qt::FramelessWindowHint);
    setStyleSheet(GitQlientStyles::getStyles());
 
-   QScopedPointer<GitConfig> git(new GitConfig(mGit));
+   GitConfig git(mGit);
 
-   const auto globalConfig = git->getGlobalUserInfo();
+   const auto globalConfig = git.getGlobalUserInfo();
    ui->leGlobalEmail->setText(globalConfig.mUserEmail);
    ui->leGlobalName->setText(globalConfig.mUserName);
 
-   const auto localConfig = git->getLocalUserInfo();
+   const auto localConfig = git.getLocalUserInfo();
    ui->leLocalEmail->setText(localConfig.mUserEmail);
    ui->leLocalName->setText(localConfig.mUserName);
 
@@ -64,10 +64,10 @@ void GitConfigDlg::close()
 
 void GitConfigDlg::accept()
 {
-   QScopedPointer<GitConfig> git(new GitConfig(mGit));
+   GitConfig git(mGit);
 
-   git->setGlobalUserInfo({ ui->leGlobalEmail->text(), ui->leGlobalName->text() });
-   git->setLocalUserInfo({ ui->leLocalEmail->text(), ui->leLocalName->text() });
+   git.setGlobalUserInfo({ ui->leGlobalEmail->text(), ui->leGlobalName->text() });
+   git.setLocalUserInfo({ ui->leLocalEmail->text(), ui->leLocalName->text() });
 
    close();
 }

@@ -48,16 +48,16 @@ GitExecResult GitHistory::getBranchesDiff(const QString &base, const QString &he
 {
    QLog_Debug("Git", QString("Getting diff between branches: {%1} and {%2}").arg(base, head));
 
-   QScopedPointer<GitConfig> git(new GitConfig(mGitBase));
+   GitConfig git(mGitBase);
 
    QString fullBase = base;
-   auto retBase = git->getRemoteForBranch(base);
+   auto retBase = git.getRemoteForBranch(base);
 
    if (retBase.success)
       fullBase.prepend(retBase.output + QStringLiteral("/"));
 
    QString fullHead = head;
-   auto retHead = git->getRemoteForBranch(head);
+   auto retHead = git.getRemoteForBranch(head);
 
    if (retHead.success)
       fullHead.prepend(retHead.output + QStringLiteral("/"));

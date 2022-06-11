@@ -29,8 +29,8 @@ void StashesContextMenu::branch()
 
 void StashesContextMenu::drop()
 {
-   QScopedPointer<GitStashes> git(new GitStashes(mGit));
-   const auto ret = git->stashDrop(mStashId);
+   GitStashes git(mGit);
+   const auto ret = git.stashDrop(mStashId);
 
    if (ret.success)
       emit signalUpdateView();
@@ -48,8 +48,8 @@ void StashesContextMenu::drop()
 
 void StashesContextMenu::clear()
 {
-   QScopedPointer<GitStashes> git(new GitStashes(mGit));
-   const auto ret = git->stashClear();
+   GitStashes git(mGit);
+   const auto ret = git.stashClear();
 
    if (ret.success)
       emit signalUpdateView();

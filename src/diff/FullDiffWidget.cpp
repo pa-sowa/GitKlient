@@ -116,8 +116,8 @@ bool FullDiffWidget::reload()
 {
    if (mCurrentSha != CommitInfo::ZERO_SHA)
    {
-      QScopedPointer<GitHistory> git(new GitHistory(mGit));
-      const auto ret = git->getCommitDiff(mCurrentSha, mPreviousSha);
+      GitHistory git(mGit);
+      const auto ret = git.getCommitDiff(mCurrentSha, mPreviousSha);
 
       if (ret.success && !ret.output.isEmpty())
       {

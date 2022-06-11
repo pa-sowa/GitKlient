@@ -58,7 +58,7 @@ void AddSubtreeDlg::accept()
    const auto subtreeUrl = ui->leUrl->text();
    const auto subtreeRef = ui->leReference->text();
 
-   QScopedPointer<GitSubtree> git(new GitSubtree(mGit));
+   GitSubtree git(mGit);
 
    if (subtreeName.isEmpty() || subtreeUrl.isEmpty() || subtreeRef.isEmpty())
    {
@@ -68,7 +68,7 @@ void AddSubtreeDlg::accept()
    }
    else
    {
-      const auto ret = git->add(subtreeUrl, subtreeRef, subtreeName, ui->chSquash->isChecked());
+      const auto ret = git.add(subtreeUrl, subtreeRef, subtreeName, ui->chSquash->isChecked());
 
       if (ret.success)
          QDialog::accept();

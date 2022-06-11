@@ -97,8 +97,8 @@ void CommitChangesWidget::reload()
 
 void CommitChangesWidget::resetFile(QListWidgetItem *item)
 {
-   QScopedPointer<GitLocal> git(new GitLocal(mGit));
-   const auto ret = git->resetFile(item->toolTip());
+   GitLocal git(mGit);
+   const auto ret = git.resetFile(item->toolTip());
    const auto revInfo = mCache->commitInfo(mCurrentSha);
    const auto files = mCache->revisionFile(mCurrentSha, revInfo.firstParent());
 
@@ -312,12 +312,12 @@ void CommitChangesWidget::addAllFilesToCommitList()
    for (auto i = ui->unstagedFilesList->count() - 1; i >= 0; --i)
       files += addFileToCommitList(ui->unstagedFilesList->item(i), false);
 
-   const auto git = QScopedPointer<GitLocal>(new GitLocal(mGit));
+   GitLocal gitLocal(mGit);
 
-   if (const auto ret = git->markFilesAsResolved(files); ret.success)
+   if (const auto ret = gitLocal.markFilesAsResolved(files); ret.success)
    {
-      QScopedPointer<GitWip> git(new GitWip(mGit, mCache));
-      git->updateWip();
+      GitWip gitWip(mGit, mCache);
+      gitWip.updateWip();
    }
 
    ui->applyActionBtn->setEnabled(ui->stagedFilesList->count() > 0);
@@ -338,12 +338,11 @@ QString CommitChangesWidget::addFileToCommitList(QListWidgetItem *item, bool upd
 
    if (updateGit)
    {
-      const auto git = QScopedPointer<GitLocal>(new GitLocal(mGit));
-
-      if (const auto ret = git->stageFile(fileName); ret.success)
+      GitLocal git(mGit);
+      if (const auto ret = git.stageFile(fileName); ret.success)
       {
-         QScopedPointer<GitWip> git(new GitWip(mGit, mCache));
-         git->updateWip();
+         GitWip git(mGit, mCache);
+         git.updateWip();
       }
    }
 
@@ -390,8 +389,8 @@ void CommitChangesWidget::revertAllChanges()
 
    for (auto i = ui->unstagedFilesList->count() - 1; i >= 0; --i)
    {
-      QScopedPointer<GitLocal> git(new GitLocal(mGit));
-      needsUpdate |= git->checkoutFile(ui->unstagedFilesList->takeItem(i)->toolTip());
+      GitLocal git(mGit);
+      needsUpdate |= git.checkoutFile(ui->unstagedFilesList->takeItem(i)->toolTip());
    }
 
    if (needsUpdate)
@@ -419,8 +418,8 @@ void CommitChangesWidget::removeFileFromCommitList(QListWidgetItem *item)
 
       connect(newFileWidget, &FileWidget::clicked, this, [this, item]() { addFileToCommitList(item); });
 
-      QScopedPointer<GitLocal> git = QScopedPointer<GitLocal>(new GitLocal(mGit));
-      git->resetFile(fileName);
+      GitLocal git(mGit);
+      git.resetFile(fileName);
 
       if (item->data(GitQlientRole::U_IsConflict).toBool())
       {

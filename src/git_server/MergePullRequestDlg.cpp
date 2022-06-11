@@ -1,13 +1,13 @@
 #include "MergePullRequestDlg.h"
 #include "ui_MergePullRequestDlg.h"
 #include <GitConfig.h>
-#include <GitQlientSettings.h>
 #include <GitHubRestApi.h>
 #include <GitLabRestApi.h>
+#include <GitQlientSettings.h>
 #include <GitRemote.h>
 
-#include <QMessageBox>
 #include <QJsonDocument>
+#include <QMessageBox>
 
 using namespace GitServer;
 
@@ -21,13 +21,13 @@ MergePullRequestDlg::MergePullRequestDlg(const QSharedPointer<GitBase> git, cons
 {
    ui->setupUi(this);
 
-   QScopedPointer<GitConfig> gitConfig(new GitConfig(mGit));
-   const auto serverUrl = gitConfig->getServerHost();
+   GitConfig gitConfig(mGit);
+   const auto serverUrl = gitConfig.getServerHost();
 
    GitQlientSettings settings("");
    const auto userName = settings.globalValue(QString("%1/user").arg(serverUrl)).toString();
    const auto userToken = settings.globalValue(QString("%1/token").arg(serverUrl)).toString();
-   const auto repoInfo = gitConfig->getCurrentRepoAndOwner();
+   const auto repoInfo = gitConfig.getCurrentRepoAndOwner();
    const auto endpoint = settings.globalValue(QString("%1/endpoint").arg(serverUrl)).toString();
 
    if (serverUrl.contains("github"))
@@ -71,11 +71,11 @@ void MergePullRequestDlg::onPRMerged()
 {
    QMessageBox::information(this, tr("PR merged!"), tr("The pull request has been merged."));
 
-   QScopedPointer<GitRemote> git(new GitRemote(mGit));
+   GitRemote git(mGit);
 
-   if (auto ret = git->pull(); ret.success)
+   if (auto ret = git.pull(); ret.success)
    {
-      git->prune();
+      git.prune();
       emit signalRepositoryUpdated();
    }
 

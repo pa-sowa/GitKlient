@@ -1,12 +1,12 @@
 #include "PrChangesList.h"
 
 #include <DiffHelper.h>
-#include <GitHistory.h>
 #include <FileDiffView.h>
+#include <GitConfig.h>
+#include <GitHistory.h>
+#include <GitRemote.h>
 #include <PrChangeListItem.h>
 #include <PullRequest.h>
-#include <GitRemote.h>
-#include <GitConfig.h>
 #include <QLogger.h>
 
 #include <QGridLayout>
@@ -20,8 +20,8 @@ PrChangesList::PrChangesList(const QSharedPointer<GitBase> &git, QWidget *parent
    : QFrame(parent)
    , mGit(git)
 {
-   QScopedPointer<GitRemote> gitRemote(new GitRemote(mGit));
-   gitRemote->fetch();
+   GitRemote gitRemote(mGit);
+   gitRemote.fetch();
 }
 
 void PrChangesList::loadData(const GitServer::PullRequest &prInfo)
@@ -29,11 +29,12 @@ void PrChangesList::loadData(const GitServer::PullRequest &prInfo)
    GitExecResult ret;
    bool showDiff = true;
    QString head;
+   GitConfig gitConfig(mGit);
 
    if (prInfo.headRepo != prInfo.baseRepo)
    {
-      QScopedPointer<GitConfig> git(new GitConfig(mGit));
-      const auto ret = git->getGitValue(QString("remote.%1.url").arg(prInfo.headRepo.split("/").constFirst()));
+      GitConfig git(mGit);
+      const auto ret = git.getGitValue(QString("remote.%1.url").arg(prInfo.headRepo.split("/").constFirst()));
 
       if (ret.output.isEmpty())
       {
@@ -44,8 +45,8 @@ void PrChangesList::loadData(const GitServer::PullRequest &prInfo)
 
          if (response == QMessageBox::Yes)
          {
-            QScopedPointer<GitRemote> git(new GitRemote(mGit));
-            const auto remoteAdded = git->addRemote(prInfo.headUrl, prInfo.headRepo.split("/").constFirst());
+            GitRemote git(mGit);
+            const auto remoteAdded = git.addRemote(prInfo.headUrl, prInfo.headRepo.split("/").constFirst());
 
             showDiff = remoteAdded.success;
 
@@ -63,17 +64,15 @@ void PrChangesList::loadData(const GitServer::PullRequest &prInfo)
    }
    else
    {
-      QScopedPointer<GitConfig> git(new GitConfig(mGit));
-      auto retBase = git->getRemoteForBranch(prInfo.head);
+      auto retBase = gitConfig.getRemoteForBranch(prInfo.head);
       head = QString("%1/%2").arg(retBase.success ? retBase.output : "origin", prInfo.head);
    }
 
-   QScopedPointer<GitConfig> gitConfig(new GitConfig(mGit));
-   auto retBase = gitConfig->getRemoteForBranch(prInfo.head);
+   auto retBase = gitConfig.getRemoteForBranch(prInfo.head);
    const auto base = QString("%1/%2").arg(retBase.success ? retBase.output : "origin", prInfo.base);
 
-   QScopedPointer<GitHistory> git(new GitHistory(mGit));
-   ret = git->getBranchesDiff(base, head);
+   GitHistory git(mGit);
+   ret = git.getBranchesDiff(base, head);
 
    if (ret.success)
    {

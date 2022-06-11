@@ -18,8 +18,8 @@ GitExecResult GitRemote::pushBranch(const QString &branchName, bool force)
 {
    QLog_Debug("Git", QString("Executing push"));
 
-   QScopedPointer<GitConfig> gitConfig(new GitConfig(mGitBase));
-   auto ret = gitConfig->getRemoteForBranch(branchName);
+   GitConfig gitConfig(mGitBase);
+   auto ret = gitConfig.getRemoteForBranch(branchName);
 
    if (ret.success)
    {
@@ -43,8 +43,8 @@ GitExecResult GitRemote::pushCommit(const QString &sha, const QString &remoteBra
 {
    QLog_Debug("Git", QString("Executing pushCommit"));
 
-   QScopedPointer<GitConfig> gitConfig(new GitConfig(mGitBase));
-   const auto remote = gitConfig->getRemoteForBranch(remoteBranch);
+   GitConfig gitConfig(mGitBase);
+   const auto remote = gitConfig.getRemoteForBranch(remoteBranch);
 
    return mGitBase->run(QString("git push %1 %2:refs/heads/%3")
                             .arg(remote.success ? remote.output : QString("origin"), sha, remoteBranch));
@@ -61,8 +61,8 @@ GitExecResult GitRemote::pull()
 
    if (ret.success && updateOnPull)
    {
-      QScopedPointer<GitSubmodules> git(new GitSubmodules(mGitBase));
-      const auto updateRet = git->submoduleUpdate(QString());
+      GitSubmodules git(mGitBase);
+      const auto updateRet = git.submoduleUpdate(QString());
 
       if (!updateRet)
       {
