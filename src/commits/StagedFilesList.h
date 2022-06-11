@@ -43,4 +43,5 @@ private:
    void onResetFile();
    void onShowDiff();
    void onDoubleClick(QListWidgetItem *item);
+   void onCurrentItemChanged(QListWidgetItem *current, QListWidgetItem *previous);
 };

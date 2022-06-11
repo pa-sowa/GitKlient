@@ -69,8 +69,17 @@ CommitChangesWidget::CommitChangesWidget(const QSharedPointer<GitCache> &cache, 
            [this](const QString &fileName) { requestDiff(mGit->getWorkingDir() + "/" + fileName); });
    connect(ui->unstagedFilesList, &QListWidget::customContextMenuRequested, this,
            &CommitChangesWidget::showUnstagedMenu);
+   // TODO: make it configurable which action triggers diff
    connect(ui->unstagedFilesList, &QListWidget::itemDoubleClicked, this,
            [this](QListWidgetItem *item) { requestDiff(mGit->getWorkingDir() + "/" + item->toolTip()); });
+   connect(ui->unstagedFilesList, &QListWidget::currentItemChanged, this,
+           [this](QListWidgetItem *current, QListWidgetItem *previous) {
+              Q_UNUSED(previous);
+              if (current)
+              {
+                 requestDiff(mGit->getWorkingDir() + "/" + current->toolTip());
+              }
+           });
 
    ui->warningButton->setVisible(false);
    ui->applyActionBtn->setText(tr("Commit"));
