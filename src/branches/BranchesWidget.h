@@ -34,7 +34,6 @@ class GitTags;
 class GitCache;
 class QPushButton;
 class BranchesWidgetMinimal;
-class BranchesViewDelegate;
 class QTreeWidget;
 class QTreeWidgetItem;
 class RefTreeWidget;
@@ -107,11 +106,6 @@ public:
                            QWidget *parent = nullptr);
 
    /**
-    * @brief Destructor;
-    */
-   ~BranchesWidget();
-
-   /**
     * @brief isMinimalViewActive Checks if the minimal view is active.
     * @return True if active, otherwise false.
     */
@@ -155,10 +149,7 @@ private:
    QSharedPointer<GitBase> mGit;
    QSharedPointer<GitTags> mGitTags;
    BranchTreeWidget *mLocalBranchesTree = nullptr;
-   BranchesViewDelegate *mLocalDelegate = nullptr;
    BranchTreeWidget *mRemoteBranchesTree = nullptr;
-   BranchesViewDelegate *mRemotesDelegate = nullptr;
-   BranchesViewDelegate *mTagsDelegate = nullptr;
    RefTreeWidget *mTagsTree = nullptr;
    QListWidget *mStashesList = nullptr;
    QLabel *mStashesTitleLabel = nullptr;

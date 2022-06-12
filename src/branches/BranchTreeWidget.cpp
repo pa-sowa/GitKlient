@@ -22,7 +22,6 @@ BranchTreeWidget::BranchTreeWidget(const QSharedPointer<GitCache> &cache, const 
    , mCache(cache)
    , mGit(git)
 {
-
    connect(this, &BranchTreeWidget::customContextMenuRequested, this, &BranchTreeWidget::showBranchesContextMenu);
    connect(this, &BranchTreeWidget::itemClicked, this, &BranchTreeWidget::selectCommit);
    connect(this, &BranchTreeWidget::itemSelectionChanged, this, &BranchTreeWidget::onSelectionChanged);

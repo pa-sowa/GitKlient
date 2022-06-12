@@ -11,7 +11,6 @@ HEADERS += \
     $$PWD/AddSubtreeDlg.h \
     $$PWD/BranchContextMenu.h \
     $$PWD/BranchTreeWidget.h \
-    $$PWD/BranchesViewDelegate.h \
     $$PWD/BranchesWidget.h \
     $$PWD/BranchesWidgetMinimal.h \
     $$PWD/GitQlientBranchItemRole.h \
@@ -26,7 +25,6 @@ SOURCES += \
     $$PWD/AddSubtreeDlg.cpp \
     $$PWD/BranchContextMenu.cpp \
     $$PWD/BranchTreeWidget.cpp \
-    $$PWD/BranchesViewDelegate.cpp \
     $$PWD/BranchesWidget.cpp \
     $$PWD/BranchesWidgetMinimal.cpp \
     $$PWD/RefTreeWidget.cpp \

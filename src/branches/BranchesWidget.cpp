@@ -2,7 +2,6 @@
 
 #include <AddSubtreeDlg.h>
 #include <BranchTreeWidget.h>
-#include <BranchesViewDelegate.h>
 #include <BranchesWidgetMinimal.h>
 #include <ClickableFrame.h>
 #include <GitBase.h>
@@ -76,9 +75,9 @@ BranchesWidget::BranchesWidget(const QSharedPointer<GitCache> &cache, const QSha
    , mCache(cache)
    , mGit(git)
    , mGitTags(new GitTags(mGit, mCache))
-   , mLocalBranchesTree(new BranchTreeWidget(mCache, mGit))
-   , mRemoteBranchesTree(new BranchTreeWidget(mCache, mGit))
-   , mTagsTree(new RefTreeWidget())
+   , mLocalBranchesTree(new BranchTreeWidget(mCache, mGit, this))
+   , mRemoteBranchesTree(new BranchTreeWidget(mCache, mGit, this))
+   , mTagsTree(new RefTreeWidget(this))
    , mStashesList(new QListWidget())
    , mStashesTitleLabel(new QLabel(tr("Stashes (0)")))
    , mStashesArrow(new QLabel())
@@ -97,17 +96,14 @@ BranchesWidget::BranchesWidget(const QSharedPointer<GitCache> &cache, const QSha
    setAttribute(Qt::WA_DeleteOnClose);
 
    mLocalBranchesTree->setLocalRepo(true);
-   mLocalBranchesTree->setMouseTracking(true);
-   mLocalBranchesTree->setItemDelegate(mLocalDelegate = new BranchesViewDelegate());
    mLocalBranchesTree->setColumnCount(1);
    mLocalBranchesTree->setObjectName("LocalBranches");
+   mLocalBranchesTree->setRootIsDecorated(false);
 
    const auto localHeader = mLocalBranchesTree->headerItem();
    localHeader->setText(0, tr("Local"));
 
    mRemoteBranchesTree->setColumnCount(1);
-   mRemoteBranchesTree->setMouseTracking(true);
-   mRemoteBranchesTree->setItemDelegate(mRemotesDelegate = new BranchesViewDelegate());
 
    const auto remoteHeader = mRemoteBranchesTree->headerItem();
    remoteHeader->setText(0, tr("Remote"));
@@ -116,9 +112,8 @@ BranchesWidget::BranchesWidget(const QSharedPointer<GitCache> &cache, const QSha
    tagHeader->setText(0, tr("Tags"));
 
    mTagsTree->setColumnCount(1);
-   mTagsTree->setMouseTracking(true);
-   mTagsTree->setItemDelegate(mTagsDelegate = new BranchesViewDelegate(true));
    mTagsTree->setContextMenuPolicy(Qt::CustomContextMenu);
+   mTagsTree->setRootIsDecorated(false);
 
    GitQlientSettings settings(mGit->getGitDir());
 
@@ -139,7 +134,6 @@ BranchesWidget::BranchesWidget(const QSharedPointer<GitCache> &cache, const QSha
    stashHeaderLayout->addStretch();
    stashHeaderLayout->addWidget(mStashesArrow);
 
-   mStashesList->setMouseTracking(true);
    mStashesList->setContextMenuPolicy(Qt::CustomContextMenu);
 
    const auto stashLayout = new QVBoxLayout();
@@ -172,7 +166,6 @@ BranchesWidget::BranchesWidget(const QSharedPointer<GitCache> &cache, const QSha
    submoduleHeaderLayout->addStretch();
    submoduleHeaderLayout->addWidget(mSubmodulesArrow);
 
-   mSubmodulesList->setMouseTracking(true);
    mSubmodulesList->setContextMenuPolicy(Qt::CustomContextMenu);
    connect(mSubmodulesList, &QListWidget::itemDoubleClicked, this, [this](QListWidgetItem *item) {
       emit signalOpenSubmodule(mGit->getWorkingDir().append("/").append(item->text()));
@@ -208,7 +201,6 @@ BranchesWidget::BranchesWidget(const QSharedPointer<GitCache> &cache, const QSha
    subtreeHeaderLayout->addStretch();
    subtreeHeaderLayout->addWidget(mSubtreeArrow);
 
-   mSubtreeList->setMouseTracking(true);
    mSubtreeList->setContextMenuPolicy(Qt::CustomContextMenu);
 
    const auto subtreeLayout = new QVBoxLayout();
@@ -321,13 +313,6 @@ BranchesWidget::BranchesWidget(const QSharedPointer<GitCache> &cache, const QSha
    connect(stashHeaderFrame, &ClickableFrame::clicked, this, &BranchesWidget::onStashesHeaderClicked);
    connect(submoduleHeaderFrame, &ClickableFrame::clicked, this, &BranchesWidget::onSubmodulesHeaderClicked);
    connect(subtreeHeaderFrame, &ClickableFrame::clicked, this, &BranchesWidget::onSubtreesHeaderClicked);
-}
-
-BranchesWidget::~BranchesWidget()
-{
-   delete mLocalDelegate;
-   delete mRemotesDelegate;
-   delete mTagsDelegate;
 }
 
 bool BranchesWidget::isMinimalViewActive() const
@@ -593,10 +578,22 @@ void BranchesWidget::processLocalBranch(const QString &sha, QString branch)
    item->setData(0, GitQlient::ShaRole, sha);
    item->setData(0, Qt::ToolTipRole, fullBranchName);
    item->setData(0, GitQlient::IsLeaf, true);
+   item->setIcon(0, QIcon::fromTheme("vcs-branch", QIcon(":/icons/repo_indicator")));
+
+   if (branch == "detached")
+   {
+      QFont font = item->font(0);
+      font.setItalic(true);
+      item->setFont(0, font);
+   }
 
    if (isCurrentBranch)
    {
       item->setSelected(true);
+
+      QFont font = item->font(0);
+      font.setBold(true);
+      item->setFont(0, font);
 
       for (const auto parent : parents)
       {
@@ -646,6 +643,7 @@ void BranchesWidget::processRemoteBranch(const QString &sha, QString branch)
          if (!parent)
          {
             item->setData(0, GitQlient::IsRoot, true);
+            item->setIcon(0, QIcon::fromTheme("folder-cloud", QIcon(":/icons/folder_indicator")));
             mRemoteBranchesTree->addTopLevelItem(item);
          }
 
@@ -665,6 +663,7 @@ void BranchesWidget::processRemoteBranch(const QString &sha, QString branch)
    item->setData(0, GitQlient::ShaRole, sha);
    item->setData(0, Qt::ToolTipRole, fullBranchName);
    item->setData(0, GitQlient::IsLeaf, true);
+   item->setIcon(0, QIcon::fromTheme("vcs-branch", QIcon(":/icons/repo_indicator")));
 }
 
 void BranchesWidget::processTags()
@@ -731,6 +730,7 @@ void BranchesWidget::processTags()
       item->setData(0, GitQlient::ShaRole, iter.value());
       item->setData(0, Qt::ToolTipRole, fullTagName);
       item->setData(0, GitQlient::IsLeaf, true);
+      item->setIcon(0, QIcon::fromTheme("tag", QIcon(":/icons/tag_indicator")));
 
       mTagsTree->addTopLevelItem(item);
    }
