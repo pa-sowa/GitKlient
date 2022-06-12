@@ -107,9 +107,12 @@ GitExecResult GitHistory::getFileDiff(const QString &currentSha, const QString &
    auto cmd = QString("git diff %1 -w -U15000 ").arg(QString::fromUtf8(isStaged ? "--cached" : ""));
 
    if (currentSha.isEmpty() || currentSha == CommitInfo::ZERO_SHA)
+   {
+      cmd.append("-- ");
       cmd.append(file);
+   }
    else
-      cmd.append(QString("%1 %2 %3").arg(previousSha, currentSha, file));
+      cmd.append(QString("%1 %2 -- %3").arg(previousSha, currentSha, file));
 
    QLog_Trace("Git", QString("Getting diff for a file: {%1}").arg(cmd));
 
