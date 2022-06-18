@@ -115,6 +115,7 @@ bool DiffWidget::loadFileDiff(const QString &currentSha, const QString &previous
          mDiffWidgets.insert(id, fileDiffWidget);
 
          const auto index = mCenterStackedWidget->addTab(fileDiffWidget, file.split("/").last());
+         mCenterStackedWidget->setTabToolTip(index, file);
          mCenterStackedWidget->setCurrentIndex(index);
 
          fileListWidget->insertFiles(currentSha, previousSha);
