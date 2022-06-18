@@ -438,8 +438,8 @@ void GitQlient::conditionallyOpenPreConfigDlg(const QSharedPointer<GitBase> &git
 
    if (maxCommits == -1 || (config.getServerHost().contains("https") && showDlg))
    {
-      const auto preConfig = new InitialRepoConfig(git, settings, this);
-      preConfig->exec();
+      InitialRepoConfig preConfig(git, settings, this);
+      preConfig.exec();
    }
 }
 
