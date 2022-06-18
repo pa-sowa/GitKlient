@@ -1,6 +1,5 @@
 #include "BlameWidget.h"
 
-#include <BranchesViewDelegate.h>
 #include <CommitHistoryColumns.h>
 #include <CommitHistoryModel.h>
 #include <CommitHistoryView.h>
