@@ -1,6 +1,7 @@
 #include "FileDiffHighlighter.h"
 
 #include <GitQlientStyles.h>
+#include <QPalette>
 #include <QTextDocument>
 
 FileDiffHighlighter::FileDiffHighlighter(QTextDocument *document)
@@ -12,8 +13,8 @@ void FileDiffHighlighter::highlightBlock(const QString &text)
 {
    setCurrentBlockState(previousBlockState() + 1);
 
-   QTextBlockFormat myFormat;
-   QTextCharFormat format;
+   QTextBlockFormat blockFormat;
+   QTextCharFormat charFormat;
    const auto currentLine = currentBlock().blockNumber() + 1;
 
    if (!mFileDiffInfo.isEmpty())
@@ -24,11 +25,10 @@ void FileDiffHighlighter::highlightBlock(const QString &text)
          {
             if (diff.addition)
             {
-               myFormat.setBackground(GitQlientStyles::getGreen());
-               // myFormat.setForeground(GitQlientStyles::getGreen());
+               charFormat.setForeground(GitQlientStyles::getGreen());
             }
             else
-               myFormat.setBackground(GitQlientStyles::getRed());
+               charFormat.setForeground(GitQlientStyles::getRed());
          }
       }
    }
@@ -36,24 +36,30 @@ void FileDiffHighlighter::highlightBlock(const QString &text)
    {
       switch (text.at(0).toLatin1())
       {
-         case '@':
-            myFormat.setBackground(GitQlientStyles::getOrange());
-            format.setFontWeight(QFont::ExtraBold);
+         case '@': {
+            QPalette palette;
+            charFormat.setForeground(palette.color(QPalette::WindowText));
+            blockFormat.setBackground(palette.color(QPalette::Window));
             break;
+         }
          case '+':
-            myFormat.setBackground(GitQlientStyles::getGreen());
+            charFormat.setForeground(GitQlientStyles::getGreen());
             break;
          case '-':
-            myFormat.setBackground(GitQlientStyles::getRed());
+            charFormat.setForeground(GitQlientStyles::getRed());
             break;
          default:
             break;
       }
    }
 
-   if (myFormat.isValid())
+   if (blockFormat.isValid())
    {
-      QTextCursor(currentBlock()).setBlockFormat(myFormat);
-      setFormat(0, currentBlock().length(), format);
+      QTextCursor(currentBlock()).setBlockFormat(blockFormat);
+   }
+
+   if (charFormat.isValid())
+   {
+      setFormat(0, currentBlock().length(), charFormat);
    }
 }
