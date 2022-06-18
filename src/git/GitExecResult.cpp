@@ -19,3 +19,8 @@ GitExecResult &GitExecResult::operator=(const QPair<bool, QString> &result)
 
    return *this;
 }
+
+GitExecResult::operator bool()
+{
+   return success;
+}
