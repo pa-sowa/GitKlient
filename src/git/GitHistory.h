@@ -38,7 +38,8 @@ public:
    GitExecResult history(const QString &file);
    GitExecResult getBranchesDiff(const QString &base, const QString &head);
    GitExecResult getCommitDiff(const QString &sha, const QString &diffToSha);
-   GitExecResult getFileDiff(const QString &currentSha, const QString &previousSha, const QString &file, bool isStaged);
+   GitExecResult getFileDiff(const QString &currentSha, const QString &previousSha, const QString &file, bool isStaged,
+                             int contextLineCount = 3);
    GitExecResult getDiffFiles(const QString &sha, const QString &diffToSha);
    GitExecResult getUntrackedFileDiff(const QString &file) const;
 

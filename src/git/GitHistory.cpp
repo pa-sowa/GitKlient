@@ -100,11 +100,11 @@ GitExecResult GitHistory::getCommitDiff(const QString &sha, const QString &diffT
 }
 
 GitExecResult GitHistory::getFileDiff(const QString &currentSha, const QString &previousSha, const QString &file,
-                                      bool isStaged)
+                                      bool isStaged, int contextLineCount)
 {
    QLog_Debug("Git", QString("Getting diff for a file: {%1} between {%2} and {%3}").arg(file, currentSha, previousSha));
 
-   auto cmd = QString("git diff %1 -w -U15000 ").arg(QString::fromUtf8(isStaged ? "--cached" : ""));
+   auto cmd = QString("git diff %1 -w -U%2 ").arg(QString::fromUtf8(isStaged ? "--cached" : "")).arg(contextLineCount);
 
    if (currentSha.isEmpty() || currentSha == CommitInfo::ZERO_SHA)
    {
@@ -143,7 +143,7 @@ GitExecResult GitHistory::getUntrackedFileDiff(const QString &file) const
 
    QLog_Trace("Git", QString("Simulating we stage the file: {%1}").arg(cmd));
 
-   if (auto ret = mGitBase->run(cmd); ret.success)
+   if (mGitBase->run(cmd))
    {
       cmd = QString("git diff %1").arg(file);
 
