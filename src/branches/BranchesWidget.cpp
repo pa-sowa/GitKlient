@@ -98,7 +98,6 @@ BranchesWidget::BranchesWidget(const QSharedPointer<GitCache> &cache, const QSha
    mLocalBranchesTree->setLocalRepo(true);
    mLocalBranchesTree->setColumnCount(1);
    mLocalBranchesTree->setObjectName("LocalBranches");
-   mLocalBranchesTree->setRootIsDecorated(false);
 
    const auto localHeader = mLocalBranchesTree->headerItem();
    localHeader->setText(0, tr("Local"));
@@ -780,6 +779,7 @@ void BranchesWidget::processTags()
       item->setData(0, GitQlient::ShaRole, iter.value());
       item->setData(0, Qt::ToolTipRole, fullTagName);
       item->setData(0, GitQlient::IsLeaf, true);
+      item->setIcon(0, QIcon::fromTheme("tag", QIcon(":/icons/tag_indicator")));
 
       mTagsTree->addTopLevelItem(item);
    }
