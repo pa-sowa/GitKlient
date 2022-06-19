@@ -27,7 +27,6 @@
 
 class GitCache;
 class GitBase;
-class GitServerCache;
 
 /*!
  \brief This class configures the context menu that will be shown when the user right-click over a commit in the
@@ -44,19 +43,6 @@ signals:
    void referencesReload();
    void logReload();
 
-   /*!
-    \brief Signal triggered when the user wants to open the diff of a commit compared to its parent.
-
-    \param sha The SHA to diff.
-   */
-   void signalOpenDiff(const QString &sha);
-   /*!
-    \brief Signal triggered when the user wants to diff the shas in the list. This signal is only emitted if the user
-    selected two SHAs.
-
-    \param sha The shas to diff between.
-   */
-   void signalOpenCompareDiff(const QStringList &sha);
    /*!
     \brief Signal triggered when the user wants to amend a commit.
 
@@ -109,13 +95,11 @@ public:
     \param parent The parent widget if needed.
    */
    explicit CommitHistoryContextMenu(const QSharedPointer<GitCache> &cache, const QSharedPointer<GitBase> &git,
-                                     const QSharedPointer<GitServerCache> &gitServerCache, const QStringList &shas,
-                                     QWidget *parent = nullptr);
+                                     const QStringList &shas, QWidget *parent = nullptr);
 
 private:
    QSharedPointer<GitCache> mCache;
    QSharedPointer<GitBase> mGit;
-   QSharedPointer<GitServerCache> mGitServerCache;
    QStringList mShas;
 
    /*!
@@ -214,4 +198,6 @@ private:
    void addBranchActions(const QString &sha);
 
    void showSquashDialog();
+
+   void amendNoEdit();
 };

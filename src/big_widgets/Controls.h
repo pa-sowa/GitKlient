@@ -49,6 +49,7 @@ enum class ControlsMainViews
    Merge,
    GitServer,
    BuildSystem,
+   Terminal,
 };
 
 /*!
@@ -116,6 +117,10 @@ signals:
     */
    void goConfig();
 
+   void goTerminal();
+
+   void goPlugins();
+
 public:
    /*!
     \brief Default constructor.
@@ -164,16 +169,31 @@ public:
    */
    void disableMergeWarning();
    /*!
-    \brief Changed the enabled state of the diff button and view.
+    \brief Disables the diff button and view.
 
    */
-   void setDiffEnabled(bool enabled);
+   void disableDiff();
+   /*!
+    \brief Enables the diff button and view.
+
+   */
+   void enableDiff();
    /*!
     \brief Gets the current selected button/view.
 
     \return ControlsMainViews The value of the current selected button.
    */
    ControlsMainViews getCurrentSelectedButton() const;
+
+   void showJenkinsButton(bool show);
+
+   void enableJenkins(bool enable);
+
+   void showGitServerButton(bool show);
+
+   void enableGitServer(bool enabled);
+
+   void enableTerminal();
 
 private:
    QString mCurrentSha;
@@ -185,6 +205,7 @@ private:
    QAction *mHistoryAction = nullptr;
    QAction *mDiffAction = nullptr;
    QAction *mBlameAction = nullptr;
+   QAction *mTerminalAction = nullptr;
    QAction *mPullAction = nullptr;
    QAction *mPushAction = nullptr;
    QAction *mRefreshAction = nullptr;

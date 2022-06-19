@@ -55,6 +55,14 @@ Controls::Controls(const QSharedPointer<GitCache> &cache, const QSharedPointer<G
    mBlameAction->setToolTip(tr("Blame"));
    mActionGroup->addAction(mBlameAction);
 
+   mTerminalAction = new QAction(this);
+   mTerminalAction->setText(tr("Terminal"));
+   mTerminalAction->setCheckable(true);
+   mTerminalAction->setIcon(QIcon(":/icons/terminal"));
+   mTerminalAction->setToolTip(tr("Terminal"));
+   // mTerminalAction->setVisible(false);
+   mActionGroup->addAction(mTerminalAction);
+
    const auto pullMenu = new QMenu(this);
    auto action = pullMenu->addAction(tr("Fetch all"));
    connect(action, &QAction::triggered, this, &Controls::fetchAll);
@@ -138,6 +146,7 @@ Controls::Controls(const QSharedPointer<GitCache> &cache, const QSharedPointer<G
    connect(mHistoryAction, &QAction::triggered, this, &Controls::signalGoRepo);
    connect(mDiffAction, &QAction::triggered, this, &Controls::signalGoDiff);
    connect(mBlameAction, &QAction::triggered, this, &Controls::signalGoBlame);
+   connect(mTerminalAction, &QAction::triggered, this, &Controls::goTerminal);
    connect(mPullAction, &QAction::triggered, this, &Controls::pullCurrentBranch);
    connect(mPushAction, &QAction::triggered, this, &Controls::pushCurrentBranch);
    connect(mRefreshAction, &QAction::triggered, this, &Controls::requestFullReload);
@@ -167,6 +176,9 @@ void Controls::toggleButton(ControlsMainViews view)
          break;
       case ControlsMainViews::Blame:
          action = mBlameAction;
+         break;
+      case ControlsMainViews::Terminal:
+         action = mTerminalAction;
          break;
       case ControlsMainViews::Merge:
          break;
@@ -200,12 +212,15 @@ void Controls::enableButtons(bool enabled)
    if (enabled)
    {
       GitQlientSettings settings(mGit->getGitDir());
-      const auto isConfigured = settings.localValue("BuildSystemEnabled", false).toBool();
 
-      mBuildSystemAction->setEnabled(isConfigured);
+      mBuildSystemAction->setEnabled(settings.localValue("BuildSystemEnabled", false).toBool());
+      mGitPlatformAction->setEnabled(settings.localValue("GitServerEnabled", false).toBool());
    }
    else
+   {
       mBuildSystemAction->setEnabled(false);
+      mGitPlatformAction->setEnabled(false);
+   }
 }
 
 void Controls::pullCurrentBranch()
@@ -245,8 +260,9 @@ void Controls::pullCurrentBranch()
 void Controls::fetchAll()
 {
    QApplication::setOverrideCursor(QCursor(Qt::WaitCursor));
+   GitQlientSettings settings(mGit->getGitDir());
    GitRemote gitRemote(mGit);
-   const auto ret = gitRemote.fetch();
+   const auto ret = gitRemote.fetch(settings.localValue("PruneOnFetch").toBool());
    QApplication::restoreOverrideCursor();
 
    if (ret)
@@ -263,14 +279,46 @@ void Controls::disableMergeWarning()
    mMergeWarning->setVisible(false);
 }
 
-void Controls::setDiffEnabled(bool enabled)
+void Controls::disableDiff()
 {
-   mDiffAction->setEnabled(enabled);
+   mDiffAction->setDisabled(true);
+}
+
+void Controls::enableDiff()
+{
+   mDiffAction->setEnabled(true);
 }
 
 ControlsMainViews Controls::getCurrentSelectedButton() const
 {
    return mBlameAction->isChecked() ? ControlsMainViews::Blame : ControlsMainViews::History;
+}
+
+void Controls::showJenkinsButton(bool show)
+{
+   mBuildSystemAction->setVisible(show);
+   // mPluginsSeparator->setVisible(show || mGitPlatformAction->isVisible());
+}
+
+void Controls::enableJenkins(bool enable)
+{
+   mBuildSystemAction->setEnabled(enable);
+}
+
+void Controls::showGitServerButton(bool show)
+{
+   mGitPlatformAction->setVisible(show);
+   // mPluginsSeparator->setVisible(mBuildSystem->isVisible() || show);
+}
+
+void Controls::enableGitServer(bool enabled)
+{
+   mGitPlatformAction->setEnabled(enabled);
+}
+
+void Controls::enableTerminal()
+{
+   mTerminalAction->setVisible(true);
 }
 
 void Controls::pushCurrentBranch()

@@ -13,6 +13,7 @@
 #include <GitWip.h>
 #include <RevisionFiles.h>
 #include <UnstagedMenu.h>
+#include <WipHelper.h>
 
 #include <QDir>
 #include <QItemDelegate>
@@ -188,7 +189,7 @@ void CommitChangesWidget::deleteUntrackedFiles()
       }
    }
 
-   emit signalCheckoutPerformed();
+   emit unstagedFilesChanged();
 }
 
 bool CommitChangesWidget::eventFilter(QObject *obj, QEvent *event)
@@ -336,8 +337,7 @@ void CommitChangesWidget::addAllFilesToCommitList()
 
    if (const auto ret = gitLocal.markFilesAsResolved(files); ret.success)
    {
-      GitWip gitWip(mGit, mCache);
-      gitWip.updateWip();
+      WipHelper::update(mGit, mCache);
    }
 
    ui->applyActionBtn->setEnabled(ui->stagedFilesList->count() > 0);
@@ -346,8 +346,7 @@ void CommitChangesWidget::addAllFilesToCommitList()
 void CommitChangesWidget::requestDiff(const QString &fileName)
 {
    const auto isStaged = qobject_cast<StagedFilesList *>(sender()) == ui->stagedFilesList;
-   emit signalShowDiff(CommitInfo::ZERO_SHA, mCache->commitInfo(CommitInfo::ZERO_SHA).firstParent(), fileName,
-                       isStaged);
+   emit signalShowDiff(fileName, isStaged);
 }
 
 QString CommitChangesWidget::addFileToCommitList(QListWidgetItem *item, bool updateGit)
@@ -359,10 +358,10 @@ QString CommitChangesWidget::addFileToCommitList(QListWidgetItem *item, bool upd
    if (updateGit)
    {
       GitLocal git(mGit);
+
       if (const auto ret = git.stageFile(fileName); ret.success)
       {
-         GitWip git(mGit, mCache);
-         git.updateWip();
+         WipHelper::update(mGit, mCache);
       }
    }
 
@@ -400,6 +399,8 @@ QString CommitChangesWidget::addFileToCommitList(QListWidgetItem *item, bool upd
 
    ui->applyActionBtn->setEnabled(true);
 
+   emit fileStaged(fileName);
+
    return fileName;
 }
 
@@ -414,7 +415,7 @@ void CommitChangesWidget::revertAllChanges()
    }
 
    if (needsUpdate)
-      emit signalCheckoutPerformed();
+      emit unstagedFilesChanged();
 }
 
 void CommitChangesWidget::removeFileFromCommitList(QListWidgetItem *item)
@@ -477,7 +478,10 @@ bool CommitChangesWidget::checkMsg(QString &msg)
    const auto title = ui->leCommitTitle->text();
 
    if (title.isEmpty())
+   {
       QMessageBox::warning(this, "Commit changes", "Please, add a title.");
+      return false;
+   }
 
    msg = title;
 
@@ -560,12 +564,11 @@ void CommitChangesWidget::showUnstagedMenu(const QPoint &pos)
    {
       const auto fileName = item->toolTip();
       const auto contextMenu = new UnstagedMenu(mGit, fileName, this);
-      connect(contextMenu, &UnstagedMenu::signalEditFile, this, &CommitChangesWidget::signalEditFile);
       connect(contextMenu, &UnstagedMenu::signalShowDiff, this, &CommitChangesWidget::requestDiff);
       connect(contextMenu, &UnstagedMenu::signalCommitAll, this, &CommitChangesWidget::addAllFilesToCommitList);
       connect(contextMenu, &UnstagedMenu::signalRevertAll, this, &CommitChangesWidget::revertAllChanges);
       connect(contextMenu, &UnstagedMenu::changeReverted, this, &CommitChangesWidget::changeReverted);
-      connect(contextMenu, &UnstagedMenu::signalCheckedOut, this, &CommitChangesWidget::signalCheckoutPerformed);
+      connect(contextMenu, &UnstagedMenu::signalCheckedOut, this, &CommitChangesWidget::unstagedFilesChanged);
       connect(contextMenu, &UnstagedMenu::signalShowFileHistory, this, &CommitChangesWidget::signalShowFileHistory);
       connect(contextMenu, &UnstagedMenu::signalStageFile, this, [this, item] { addFileToCommitList(item); });
       connect(contextMenu, &UnstagedMenu::deleteUntracked, this, &CommitChangesWidget::deleteUntrackedFiles);

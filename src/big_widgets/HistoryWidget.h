@@ -34,13 +34,12 @@ class BranchesWidget;
 class QStackedWidget;
 class CommitChangesWidget;
 class CommitInfoWidget;
-class RepositoryViewDelegate;
-class FullDiffWidget;
-class FileDiffWidget;
-class BranchesWidgetMinimal;
 class QCheckBox;
+class RepositoryViewDelegate;
+class WipDiffWidget;
+class BranchesWidgetMinimal;
 class QPushButton;
-class GitServerCache;
+class IGitServerCache;
 class QLabel;
 class GitQlientSettings;
 class QSplitter;
@@ -72,18 +71,6 @@ signals:
    void logReload();
 
    /*!
-    \brief Signal triggered when the user wants to see the diff of the selected SHA compared to its first parent.
-
-    \param sha The selected commit SHA.
-   */
-   void signalOpenDiff(const QString &sha);
-   /*!
-    \brief Signal triggered when the user wants to see the diff between two different commits.
-
-    \param sha The list of SHAs to compare.
-   */
-   void signalOpenCompareDiff(const QStringList &sha);
-   /*!
     \brief Signal triggered when the user opens a new submodule. It is necessary to propagate this signal since is the
     GitQlient class the responsible of opening a new tab for the submodule.
 
@@ -97,7 +84,7 @@ signals:
     \param parentSha The commit SHA to compare to.
     \param fileName The file name for the diff.
    */
-   void signalShowDiff(const QString &sha, const QString &parentSha, const QString &fileName, bool isStaged);
+   void signalShowDiff(const QString &sha, const QString &parentSha, const QString &fileName);
 
    /*!
     \brief Signal triggered when changes are committed.
@@ -154,13 +141,15 @@ public:
     \param parent The parent widget if needed.
    */
    explicit HistoryWidget(const QSharedPointer<GitCache> &cache, const QSharedPointer<GitBase> git,
-                          const QSharedPointer<GitServerCache> &gitServerCache,
                           const QSharedPointer<GitQlientSettings> &settings, QWidget *parent = nullptr);
    /*!
     \brief Destructor.
 
    */
    ~HistoryWidget();
+
+   void enableGitServerFeatures(const QSharedPointer<IGitServerCache> &gitServerCache);
+
    /*!
     \brief Clears all the information in the subwidgets.
 
@@ -228,13 +217,12 @@ private:
    enum class Pages
    {
       Graph,
-      FileDiff,
-      FullDiff
+      FileDiff
    };
 
    QSharedPointer<GitBase> mGit;
    QSharedPointer<GitCache> mCache;
-   QSharedPointer<GitServerCache> mGitServerCache;
+   QSharedPointer<IGitServerCache> mGitServerCache;
    QSharedPointer<GitQlientSettings> mSettings;
    CommitHistoryModel *mRepositoryModel = nullptr;
    CommitHistoryView *mRepositoryView = nullptr;
@@ -248,8 +236,7 @@ private:
    QCheckBox *mChShowAllBranches = nullptr;
    RepositoryViewDelegate *mItemDelegate = nullptr;
    QFrame *mGraphFrame = nullptr;
-   FileDiffWidget *mFileDiff = nullptr;
-   FullDiffWidget *mFullDiffWidget = nullptr;
+   WipDiffWidget *mWipFileDiff = nullptr;
    QPushButton *mReturnFromFull = nullptr;
    QLabel *mUserName = nullptr;
    QLabel *mUserEmail = nullptr;
@@ -306,6 +293,10 @@ private:
     */
    void mergeSquashBranch(const QString &current, const QString &branchToMerge);
 
+   /**
+    * @brief processMergeResponse
+    * @param ret
+    */
    void processMergeResponse(const GitExecResult &ret);
 
    /**
@@ -313,33 +304,19 @@ private:
     */
    void returnToView();
 
+   void returnToViewIfObsolete(const QString &fileName);
+
    /**
     * @brief cherryPickCommit Cherry-picks the commit defined by the SHA in the QLineEdit of the filter.
     */
    void cherryPickCommit();
 
    /**
-    * @brief showFileDiff Shows the file diff.
-    * @param sha The base commit SHA.
-    * @param parentSha The commit SHA to compare with.
+    * @brief showWipFileDiff Shows the file diff.
     * @param fileName The file name to diff.
+    * @param isStaged Indicates if the file to show the diff is already cached or is still unstaged.
     */
-   void showFileDiff(const QString &sha, const QString &parentSha, const QString &fileName, bool isStaged);
-
-   /**
-    * @brief showFileDiff Shows the file diff.
-    * @param sha The base commit SHA.
-    * @param parentSha The commit SHA to compare with.
-    * @param fileName The file name to diff.
-    */
-   void showFileDiffEdition(const QString &sha, const QString &parentSha, const QString &fileName);
-
-   /**
-    * @brief showFullDiff Shows the full commit diff.
-    * @param sha The base commit SHA.
-    * @param parentSha The commit SHA to compare with.
-    */
-   void onOpenFullDiff(const QString &sha);
+   void showWipFileDiff(const QString &fileName, bool isStaged);
 
    void rearrangeSplittrer(bool minimalActive);
 

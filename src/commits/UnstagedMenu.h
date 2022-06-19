@@ -38,7 +38,6 @@ signals:
    void signalRevertAll();
    void signalCheckedOut();
    void signalShowFileHistory(const QString &fileName);
-   void signalEditFile(const QString &fullFilePath);
    void signalStageFile();
    void deleteUntracked();
 
@@ -51,4 +50,6 @@ private:
 
    bool addEntryToGitIgnore(const QString &entry);
    void onDeleteFile();
+   void openFileExplorer();
+   void openExternalEditor();
 };

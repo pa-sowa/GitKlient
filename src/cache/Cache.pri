@@ -3,19 +3,17 @@ INCLUDEPATH += $$PWD
 HEADERS += \
     $$PWD/CommitInfo.h \
     $$PWD/GitCache.h \
-    $$PWD/GitServerCache.h \
+    $$PWD/GitRepoLoader.h \
     $$PWD/Lane.h \
     $$PWD/LaneType.h \
     $$PWD/References.h \
-    $$PWD/RevisionFiles.h \
-    $$PWD/WipRevisionInfo.h \
+    $$PWD/WipHelper.h \
     $$PWD/lanes.h
 
 SOURCES += \
     $$PWD/CommitInfo.cpp \
     $$PWD/GitCache.cpp \
-    $$PWD/GitServerCache.cpp \
+    $$PWD/GitRepoLoader.cpp \
     $$PWD/Lane.cpp \
     $$PWD/References.cpp \
-    $$PWD/RevisionFiles.cpp \
     $$PWD/lanes.cpp

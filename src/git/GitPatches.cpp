@@ -50,7 +50,7 @@ GitExecResult GitPatches::exportPatch(const QStringList &shaList)
    return qMakePair(true, files.join("<br>"));
 }
 
-bool GitPatches::applyPatch(const QString &fileName, bool asCommit)
+GitExecResult GitPatches::applyPatch(const QString &fileName, bool asCommit)
 {
    QLog_Debug("Git", QString("Applying patch: {%1} %2").arg(fileName, asCommit ? QString("as commit.") : QString()));
 
@@ -62,7 +62,7 @@ bool GitPatches::applyPatch(const QString &fileName, bool asCommit)
 
    const auto ret = mGitBase->run(cmd);
 
-   return ret.success;
+   return ret;
 }
 
 GitExecResult GitPatches::stagePatch(const QString &fileName) const
@@ -70,6 +70,28 @@ GitExecResult GitPatches::stagePatch(const QString &fileName) const
    QLog_Debug("Git", QString("Staging patch: {%1}").arg(fileName));
 
    const auto cmd = QString("git apply --cached %1").arg(fileName);
+
+   QLog_Trace("Git", QString("Staging patch: {%1}").arg(cmd));
+
+   return mGitBase->run(cmd);
+}
+
+GitExecResult GitPatches::discardPatch(const QString &fileName) const
+{
+   QLog_Debug("Git", QString("Staging patch: {%1}").arg(fileName));
+
+   const auto cmd = QString("git apply --reverse %1").arg(fileName);
+
+   QLog_Trace("Git", QString("Staging patch: {%1}").arg(cmd));
+
+   return mGitBase->run(cmd);
+}
+
+GitExecResult GitPatches::resetPatch(const QString &fileName) const
+{
+   QLog_Debug("Git", QString("Staging patch: {%1}").arg(fileName));
+
+   const auto cmd = QString("git apply --cached --reverse %1").arg(fileName);
 
    QLog_Trace("Git", QString("Staging patch: {%1}").arg(cmd));
 

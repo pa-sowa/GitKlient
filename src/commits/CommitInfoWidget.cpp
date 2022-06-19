@@ -38,7 +38,7 @@ CommitInfoWidget::CommitInfoWidget(const QSharedPointer<GitCache> &cache, const 
    mainLayout->setRowStretch(2, 1);
 
    connect(mFileListWidget, &FileListWidget::itemDoubleClicked, this,
-           [this](QListWidgetItem *item) { emit signalOpenFileCommit(mCurrentSha, mParentSha, item->text(), false); });
+           [this](QListWidgetItem *item) { emit signalOpenFileCommit(mCurrentSha, mParentSha, item->text()); });
    connect(mFileListWidget, &FileListWidget::signalShowFileHistory, this, &CommitInfoWidget::signalShowFileHistory);
    connect(mFileListWidget, &FileListWidget::signalEditFile, this, &CommitInfoWidget::signalEditFile);
 }
@@ -53,7 +53,7 @@ void CommitInfoWidget::configure(const QString &sha)
    mCurrentSha = sha;
    mParentSha = sha;
 
-   if (sha != CommitInfo::ZERO_SHA && !sha.isEmpty())
+   if (sha != ZERO_SHA && !sha.isEmpty())
    {
       const auto commit = mCache->commitInfo(sha);
 

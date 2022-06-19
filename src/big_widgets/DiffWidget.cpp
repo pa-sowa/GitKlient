@@ -3,7 +3,6 @@
 #include <CommitInfoPanel.h>
 #include <FileDiffWidget.h>
 #include <FileListWidget.h>
-#include <FullDiffWidget.h>
 #include <GitCache.h>
 #include <GitHistory.h>
 #include <GitQlientSettings.h>
@@ -81,8 +80,6 @@ void DiffWidget::reload()
    {
       if (const auto fileDiff = dynamic_cast<FileDiffWidget *>(mCenterStackedWidget->currentWidget()))
          fileDiff->reload();
-      else if (const auto fullDiff = dynamic_cast<FullDiffWidget *>(mCenterStackedWidget->currentWidget()))
-         fullDiff->reload();
    }
 }
 
@@ -91,7 +88,7 @@ void DiffWidget::clear() const
    mCenterStackedWidget->setCurrentIndex(0);
 }
 
-bool DiffWidget::loadFileDiff(const QString &currentSha, const QString &previousSha, const QString &file, bool isStaged)
+bool DiffWidget::loadFileDiff(const QString &currentSha, const QString &previousSha, const QString &file)
 {
    const auto id = QString("%1 (%2 \u2194 %3)").arg(file.split("/").last(), currentSha.left(6), previousSha.left(6));
 
@@ -105,7 +102,7 @@ bool DiffWidget::loadFileDiff(const QString &currentSha, const QString &previous
           QString("Requested diff for file {%1} on between commits {%2} and {%3}").arg(file, currentSha, previousSha));
 
       const auto fileDiffWidget = new FileDiffWidget(mGit, mCache);
-      const auto fileWithModifications = fileDiffWidget->configure(currentSha, previousSha, file, isStaged);
+      const auto fileWithModifications = fileDiffWidget->configure(currentSha, previousSha, file, false);
 
       if (fileWithModifications)
       {
@@ -115,7 +112,6 @@ bool DiffWidget::loadFileDiff(const QString &currentSha, const QString &previous
          mDiffWidgets.insert(id, fileDiffWidget);
 
          const auto index = mCenterStackedWidget->addTab(fileDiffWidget, file.split("/").last());
-         mCenterStackedWidget->setTabToolTip(index, file);
          mCenterStackedWidget->setCurrentIndex(index);
 
          fileListWidget->insertFiles(currentSha, previousSha);
@@ -143,58 +139,10 @@ bool DiffWidget::loadFileDiff(const QString &currentSha, const QString &previous
    }
 }
 
-bool DiffWidget::loadCommitDiff(const QString &sha, const QString &parentSha)
-{
-   const auto id = QString("Commit diff (%1 \u2194 %2)").arg(sha.left(6), parentSha.left(6));
-
-   mCurrentSha = sha;
-   mParentSha = parentSha;
-
-   if (!mDiffWidgets.contains(id))
-   {
-      GitHistory gitHistory(mGit);
-      const auto ret = gitHistory.getCommitDiff(sha, parentSha);
-
-      if (ret.success && !ret.output.isEmpty())
-      {
-         const auto fullDiffWidget = new FullDiffWidget(mGit, mCache);
-         fullDiffWidget->loadDiff(sha, parentSha, ret.output);
-
-         mInfoPanelBase->configure(mCache->commitInfo(sha));
-         mInfoPanelParent->configure(mCache->commitInfo(parentSha));
-
-         mDiffWidgets.insert(id, fullDiffWidget);
-
-         const auto index = mCenterStackedWidget->addTab(fullDiffWidget,
-                                                         QString("(%1 \u2194 %2)").arg(sha.left(6), parentSha.left(6)));
-         mCenterStackedWidget->setCurrentIndex(index);
-
-         fileListWidget->insertFiles(sha, parentSha);
-         fileListWidget->setVisible(true);
-
-         return true;
-      }
-      else
-         QMessageBox::information(this, tr("No diff to show!"),
-                                  tr("There is no diff to show between commit SHAs {%1} and {%2}").arg(sha, parentSha));
-
-      return false;
-   }
-   else
-   {
-      const auto diffWidget = mDiffWidgets.value(id);
-      const auto diff = dynamic_cast<FullDiffWidget *>(diffWidget);
-      diff->reload();
-      mCenterStackedWidget->setCurrentWidget(diff);
-   }
-
-   return true;
-}
-
 void DiffWidget::onDiffFontSizeChanged()
 {
-   for (auto diffWidget : mDiffWidgets)
-      diffWidget->changeFontSize();
+   for (const auto &diffWidget : qAsConst(mDiffWidgets))
+      diffWidget->updateFontSize();
 }
 
 void DiffWidget::changeSelection(int index)
@@ -223,5 +171,5 @@ void DiffWidget::onTabClosed(int index)
 
 void DiffWidget::onDoubleClick(QListWidgetItem *item)
 {
-   loadFileDiff(mCurrentSha, mParentSha, item->text(), false);
+   loadFileDiff(mCurrentSha, mParentSha, item->text());
 }

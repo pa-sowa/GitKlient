@@ -34,6 +34,7 @@ class GitBranches
 public:
    GitBranches(const QSharedPointer<GitBase> &gitBase);
    GitExecResult createBranchFromAnotherBranch(const QString &oldName, const QString &newName);
+   GitExecResult checkoutNewLocalBranchFromAnotherBranch(const QString &oldName, const QString &newName) const;
    GitExecResult createBranchAtCommit(const QString &commitSha, const QString &branchName);
    GitExecResult checkoutBranchFromCommit(const QString &commitSha, const QString &branchName);
    GitExecResult checkoutLocalBranch(const QString &branchName);
@@ -45,6 +46,7 @@ public:
    GitExecResult getLastCommitOfBranch(const QString &branch);
    GitExecResult pushUpstream(const QString &branchName);
    GitExecResult rebaseOnto(const QString &currentBranch, const QString &startBranch, const QString &fromBranch) const;
+   GitExecResult unsetUpstream() const;
 
 private:
    QSharedPointer<GitBase> mGitBase;

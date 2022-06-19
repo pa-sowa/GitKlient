@@ -2,7 +2,6 @@
 
 #include <GitBase.h>
 #include <GitConfig.h>
-#include <GitQlientSettings.h>
 #include <GitSubmodules.h>
 
 #include <QLogger.h>
@@ -18,8 +17,8 @@ GitExecResult GitRemote::pushBranch(const QString &branchName, bool force)
 {
    QLog_Debug("Git", QString("Executing push"));
 
-   GitConfig gitConfig(mGitBase);
-   auto ret = gitConfig.getRemoteForBranch(branchName);
+   QScopedPointer<GitConfig> gitConfig(new GitConfig(mGitBase));
+   auto ret = gitConfig->getRemoteForBranch(branchName);
 
    if (ret.success)
    {
@@ -43,26 +42,23 @@ GitExecResult GitRemote::pushCommit(const QString &sha, const QString &remoteBra
 {
    QLog_Debug("Git", QString("Executing pushCommit"));
 
-   GitConfig gitConfig(mGitBase);
-   const auto remote = gitConfig.getRemoteForBranch(remoteBranch);
+   QScopedPointer<GitConfig> gitConfig(new GitConfig(mGitBase));
+   const auto remote = gitConfig->getRemoteForBranch(remoteBranch);
 
    return mGitBase->run(QString("git push %1 %2:refs/heads/%3")
                             .arg(remote.success ? remote.output : QString("origin"), sha, remoteBranch));
 }
 
-GitExecResult GitRemote::pull()
+GitExecResult GitRemote::pull(bool updateSubmodulesOnPull)
 {
    QLog_Debug("Git", QString("Executing pull"));
 
    auto ret = mGitBase->run("git pull");
 
-   GitQlientSettings settings(mGitBase->getGitDir());
-   const auto updateOnPull = settings.localValue("UpdateOnPull", true).toBool();
-
-   if (ret.success && updateOnPull)
+   if (ret.success && updateSubmodulesOnPull)
    {
-      GitSubmodules git(mGitBase);
-      const auto updateRet = git.submoduleUpdate(QString());
+      QScopedPointer<GitSubmodules> git(new GitSubmodules(mGitBase));
+      const auto updateRet = git->submoduleUpdate(QString());
 
       if (!updateRet)
       {
@@ -75,15 +71,12 @@ GitExecResult GitRemote::pull()
    return ret;
 }
 
-bool GitRemote::fetch()
+bool GitRemote::fetch(bool autoPrune)
 {
    QLog_Debug("Git", QString("Executing fetch with prune"));
 
-   GitQlientSettings settings(mGitBase->getGitDir());
-   const auto pruneOnFetch = settings.localValue("PruneOnFetch", true).toBool();
-
    const auto cmd
-       = QString("git fetch --all --tags --force %1").arg(pruneOnFetch ? QString("--prune --prune-tags") : QString());
+       = QString("git fetch --all --tags --force %1").arg(autoPrune ? QString("--prune --prune-tags") : QString());
    const auto ret = mGitBase->run(cmd).success;
 
    return ret;

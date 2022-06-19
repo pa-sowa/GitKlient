@@ -25,11 +25,13 @@
 
 #include <QTreeView>
 
+#include <CommitInfo.h>
+#include <GitExecResult.h>
+
 class GitCache;
 class GitBase;
 class CommitHistoryModel;
 class ShaFilterProxyModel;
-class GitServerCache;
 class GitQlientSettings;
 
 /**
@@ -47,19 +49,6 @@ signals:
    void referencesReload();
    void logReload();
 
-   /*!
-    \brief Signal triggered when the user wants to open the diff of a commit compared to its parent.
-
-    \param sha The SHA to diff.
-   */
-   void signalOpenDiff(const QString &sha);
-   /*!
-    \brief Signal triggered when the user wants to diff the shas in the list. This signal is only emitted if the user
-    selected two SHAs.
-
-    \param sha The shas to diff between.
-   */
-   void signalOpenCompareDiff(const QStringList &sha);
    /*!
     \brief Signal triggered when the user wants to amend a commit.
 
@@ -107,8 +96,7 @@ public:
     * @param parent The parent widget if needed.
     */
    explicit CommitHistoryView(const QSharedPointer<GitCache> &cache, const QSharedPointer<GitBase> &git,
-                              const QSharedPointer<GitQlientSettings> &settings,
-                              const QSharedPointer<GitServerCache> &gitServerCache, QWidget *parent = nullptr);
+                              const QSharedPointer<GitQlientSettings> &settings, QWidget *parent = nullptr);
    /**
     * @brief Destructor.
     */
@@ -172,11 +160,10 @@ private:
    QSharedPointer<GitCache> mCache;
    QSharedPointer<GitBase> mGit;
    QSharedPointer<GitQlientSettings> mSettings;
-   QSharedPointer<GitServerCache> mGitServerCache;
    CommitHistoryModel *mCommitHistoryModel = nullptr;
    ShaFilterProxyModel *mProxyModel = nullptr;
    bool mIsFiltering = false;
-   QString mCurrentSha;
+   QString mCurrentSha = ZERO_SHA;
 
    /**
     * @brief Shows the context menu for the CommitHistoryView.

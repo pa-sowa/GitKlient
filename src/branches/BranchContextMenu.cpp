@@ -5,8 +5,10 @@
 #include <GitBranches.h>
 #include <GitCache.h>
 #include <GitConfig.h>
+#include <GitQlientSettings.h>
 #include <GitQlientStyles.h>
 #include <GitRemote.h>
+#include <UpstreamDlg.h>
 
 #include <QApplication>
 #include <QClipboard>
@@ -33,7 +35,10 @@ BranchContextMenu::BranchContextMenu(BranchContextMenuConfig config, QWidget *pa
    }
 
    if (mConfig.currentBranch == mConfig.branchSelected)
+   {
+      connect(addAction(tr("Unset upstream")), &QAction::triggered, this, &BranchContextMenu::unsetUpstream);
       connect(addAction(tr("Push force")), &QAction::triggered, this, &BranchContextMenu::pushForce);
+   }
 
    addSeparator();
 
@@ -59,9 +64,12 @@ BranchContextMenu::BranchContextMenu(BranchContextMenuConfig config, QWidget *pa
 
 void BranchContextMenu::pull()
 {
+   GitQlientSettings settings(mConfig.mGit->getGitDir());
+   const auto updateOnPull = settings.localValue("UpdateOnPull", true).toBool();
+
    QApplication::setOverrideCursor(QCursor(Qt::WaitCursor));
    GitRemote git(mConfig.mGit);
-   const auto ret = git.pull();
+   const auto ret = git.pull(updateOnPull);
    QApplication::restoreOverrideCursor();
 
    if (ret.success)
@@ -90,9 +98,12 @@ void BranchContextMenu::pull()
 
 void BranchContextMenu::fetch()
 {
+   GitQlientSettings settings(mConfig.mGit->getGitDir());
+   const auto pruneOnFetch = settings.localValue("PruneOnFetch", true).toBool();
+
    QApplication::setOverrideCursor(QCursor(Qt::WaitCursor));
    GitRemote git(mConfig.mGit);
-   const auto ret = git.fetch();
+   const auto ret = git.fetch(pruneOnFetch);
    QApplication::restoreOverrideCursor();
 
    if (ret)
@@ -112,6 +123,13 @@ void BranchContextMenu::push()
    if (ret.output.contains("has no upstream branch"))
    {
       BranchDlg dlg({ mConfig.branchSelected, BranchDlgMode::PUSH_UPSTREAM, mConfig.mCache, mConfig.mGit });
+      dlg.exec();
+   }
+   else if (ret.output.contains("upstream branch", Qt::CaseInsensitive)
+            && ret.output.contains("does not match", Qt::CaseInsensitive)
+            && ret.output.contains("the name of your current branch", Qt::CaseInsensitive))
+   {
+      UpstreamDlg dlg(mConfig.mGit, ret.output);
       dlg.exec();
    }
    else if (ret.success)
@@ -142,6 +160,14 @@ void BranchContextMenu::push()
       msgBox.setStyleSheet(GitQlientStyles::getStyles());
       msgBox.exec();
    }
+}
+
+void BranchContextMenu::unsetUpstream() const
+{
+   QApplication::setOverrideCursor(QCursor(Qt::WaitCursor));
+   GitBranches git(mConfig.mGit);
+   const auto ret = git.unsetUpstream();
+   QApplication::restoreOverrideCursor();
 }
 
 void BranchContextMenu::pushForce()
@@ -177,7 +203,9 @@ void BranchContextMenu::createBranch()
 void BranchContextMenu::createCheckoutBranch()
 {
    BranchDlg dlg({ mConfig.branchSelected, BranchDlgMode::CREATE_CHECKOUT, mConfig.mCache, mConfig.mGit });
-   dlg.exec();
+
+   if (dlg.exec() == QDialog::Accepted)
+      emit fullReload();
 }
 
 void BranchContextMenu::merge()

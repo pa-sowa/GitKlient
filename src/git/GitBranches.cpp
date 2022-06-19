@@ -25,6 +25,19 @@ GitExecResult GitBranches::createBranchFromAnotherBranch(const QString &oldName,
    return ret;
 }
 
+GitExecResult GitBranches::checkoutNewLocalBranchFromAnotherBranch(const QString &oldName, const QString &newName) const
+{
+   QLog_Debug("Git", QString("Creating branch from another branch: {%1} and {%2}").arg(oldName, newName));
+
+   const auto cmd = QString("git checkout -b %1 %2").arg(newName, oldName);
+
+   QLog_Trace("Git", QString("Creating branch from another branch: {%1}").arg(cmd));
+
+   const auto ret = mGitBase->run(cmd);
+
+   return ret;
+}
+
 GitExecResult GitBranches::createBranchAtCommit(const QString &commitSha, const QString &branchName)
 {
    QLog_Debug("Git", QString("Creating a branch from a commit: {%1} at {%2}").arg(branchName, commitSha));
@@ -156,9 +169,9 @@ GitExecResult GitBranches::removeRemoteBranch(const QString &branchName)
 
    QLog_Debug("Git", QString("Removing a remote branch: {%1}").arg(branch));
 
-   GitConfig gitConfig(mGitBase);
+   QScopedPointer<GitConfig> gitConfig(new GitConfig(mGitBase));
 
-   auto ret = gitConfig.getRemoteForBranch(branch);
+   auto ret = gitConfig->getRemoteForBranch(branch);
 
    const auto cmd = QString("git push --delete %2 %1").arg(branch, ret.success ? ret.output : QString("origin"));
 
@@ -204,5 +217,13 @@ GitExecResult GitBranches::rebaseOnto(const QString &currentBranch, const QStrin
    QLog_Debug("Git", QString("Git rebase {%1} into {%2}").arg(currentBranch, fromBranch));
 
    const auto cmd = QString("git rebase --onto %1 %2 %3").arg(currentBranch, startBranch, fromBranch);
+   return mGitBase->run(cmd);
+}
+
+GitExecResult GitBranches::unsetUpstream() const
+{
+   QLog_Debug("Git", QString("Git unset current branch upstream"));
+
+   const auto cmd = QString("git branch --unset-upstream");
    return mGitBase->run(cmd);
 }

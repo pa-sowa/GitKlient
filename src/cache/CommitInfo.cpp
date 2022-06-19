@@ -1,9 +1,8 @@
 #include "CommitInfo.h"
 
-#include <QStringList>
+#include <GitExecResult.h>
 
-const QString CommitInfo::ZERO_SHA = QString("0000000000000000000000000000000000000000");
-const QString CommitInfo::INIT_SHA = QString("4b825dc642cb6eb9a060e54bf8d69288fbee4904");
+#include <QStringList>
 
 CommitInfo::CommitInfo(QByteArray commitData, const QString &gpg, bool goodSignature)
    : gpgKey(gpg)
@@ -14,36 +13,39 @@ CommitInfo::CommitInfo(QByteArray commitData, const QString &gpg, bool goodSigna
 
 CommitInfo::CommitInfo(QByteArray data)
 {
-    parseDiff(data, 1);
+   parseDiff(data, 1);
 }
 
 void CommitInfo::parseDiff(QByteArray &data, int startingField)
 {
-    if (const auto fields = QString::fromUtf8(data).split('\n'); fields.count() > 0)
-    {
-       const auto firstField = fields.constFirst();
-       auto combinedShas = fields.at(startingField++);
-       auto shas = combinedShas.split('X');
-       sha = shas.takeFirst().remove(0, 1);
+   if (data.isEmpty())
+      return;
 
-       if (!shas.isEmpty())
-       {
- #if QT_VERSION >= QT_VERSION_CHECK(5, 14, 0)
-          mParentsSha = shas.takeFirst().split(' ', Qt::SkipEmptyParts);
- #else
-          mParentsSha = shas.takeFirst().split(' ', QString::SkipEmptyParts);
- #endif
-       }
-       committer = fields.at(startingField++);
-       author = fields.at(startingField++);
-       dateSinceEpoch = std::chrono::seconds(fields.at(startingField++).toInt());
-       shortLog = fields.at(startingField);
+   if (const auto fields = QString::fromUtf8(data).split('\n'); fields.count() > 0)
+   {
+      auto combinedShas = fields.at(startingField++);
+      auto shas = combinedShas.split('X');
+      auto first = shas.takeFirst();
+      sha = first.remove(0, 1);
 
-       for (auto i = 6; i < fields.count(); ++i)
-          longLog += fields.at(i) + '\n';
+      if (!shas.isEmpty())
+      {
+#if QT_VERSION >= QT_VERSION_CHECK(5, 14, 0)
+         mParentsSha = shas.takeFirst().split(' ', Qt::SkipEmptyParts);
+#else
+         mParentsSha = shas.takeFirst().split(' ', QString::SkipEmptyParts);
+#endif
+      }
+      committer = fields.at(startingField++);
+      author = fields.at(startingField++);
+      dateSinceEpoch = std::chrono::seconds(fields.at(startingField++).toInt());
+      shortLog = fields.at(startingField);
 
-       longLog = longLog.trimmed();
-    }
+      for (auto i = 6; i < fields.count(); ++i)
+         longLog += fields.at(i) + '\n';
+
+      longLog = longLog.trimmed();
+   }
 }
 
 CommitInfo::CommitInfo(const QString &sha, const QStringList &parents, std::chrono::seconds commitDate,
@@ -77,7 +79,7 @@ int CommitInfo::parentsCount() const
 {
    auto count = mParentsSha.count();
 
-   if (count > 0 && mParentsSha.contains(CommitInfo::INIT_SHA))
+   if (count > 0 && mParentsSha.contains(ZERO_SHA))
       --count;
 
    return count;
@@ -93,11 +95,16 @@ QStringList CommitInfo::parents() const
    return mParentsSha;
 }
 
+void CommitInfo::setParents(const QStringList &parents)
+{
+   mParentsSha = parents;
+}
+
 bool CommitInfo::isInWorkingBranch() const
 {
    for (const auto &child : mChilds)
    {
-      if (child->sha == CommitInfo::ZERO_SHA)
+      if (child->sha == ZERO_SHA)
       {
          return true;
          break;
@@ -144,7 +151,5 @@ void CommitInfo::removeChild(CommitInfo *commit)
 
 QString CommitInfo::getFirstChildSha() const
 {
-   if (!mChilds.isEmpty())
-      mChilds.constFirst();
-   return QString();
+   return !mChilds.isEmpty() ? mChilds.constFirst()->sha : QString {};
 }

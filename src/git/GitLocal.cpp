@@ -206,7 +206,7 @@ GitExecResult GitLocal::ammend(const QString &msg) const
 {
    QLog_Debug("Git", QString("Amend message"));
 
-   const auto cmd = QString("git commit --amend -m \"%1\"").arg(msg);
+   const auto cmd = QString("git commit --amend %1").arg(msg.isEmpty() ? "--no-edit" : QString("-m \"%1\"").arg(msg));
    return mGitBase->run(cmd);
 }
 
@@ -236,7 +236,7 @@ GitExecResult GitLocal::commitFiles(QStringList &selFiles, const RevisionFiles &
    auto ret = mGitBase->run(cmd);
 
    if (ret.output.startsWith("On branch"))
-      ret.output = false;
+      ret.success = false;
 
    return ret;
 }

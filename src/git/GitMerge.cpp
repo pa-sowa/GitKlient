@@ -1,7 +1,6 @@
 #include "GitMerge.h"
 
 #include <GitBase.h>
-#include <GitRepoLoader.h>
 #include <GitWip.h>
 #include <QLogger.h>
 
@@ -9,9 +8,8 @@
 
 using namespace QLogger;
 
-GitMerge::GitMerge(const QSharedPointer<GitBase> &gitBase, QSharedPointer<GitCache> cache)
+GitMerge::GitMerge(const QSharedPointer<GitBase> &gitBase)
    : mGitBase(gitBase)
-   , mCache(cache)
 {
 }
 
@@ -41,15 +39,7 @@ GitExecResult GitMerge::merge(const QString &into, QStringList sources)
 
    QLog_Trace("Git", QString("Merging ignoring spaces: {%1}").arg(cmd2));
 
-   const auto retMerge = mGitBase->run(cmd2);
-
-   if (retMerge.success)
-   {
-      GitWip git(mGitBase, mCache);
-      git.updateWip();
-   }
-
-   return retMerge;
+   return mGitBase->run(cmd2);
 }
 
 GitExecResult GitMerge::abortMerge() const
@@ -110,9 +100,6 @@ GitExecResult GitMerge::squashMerge(const QString &into, QStringList sources, co
          const auto cmd = QString("git commit -m \"%1\"").arg(msg);
          mGitBase->run(cmd);
       }
-
-      GitWip git(mGitBase, mCache);
-      git.updateWip();
    }
 
    return retMerge;

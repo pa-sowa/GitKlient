@@ -6,6 +6,7 @@
 #include <CommitInfo.h>
 #include <FileBlameWidget.h>
 #include <GitHistory.h>
+#include <GitQlientSettings.h>
 #include <RepositoryViewDelegate.h>
 
 #include <QApplication>
@@ -14,6 +15,8 @@
 #include <QGridLayout>
 #include <QHeaderView>
 #include <QMenu>
+#include <QMessageBox>
+#include <QProcess>
 #include <QTabWidget>
 #include <QTreeView>
 
@@ -23,10 +26,10 @@ BlameWidget::BlameWidget(const QSharedPointer<GitCache> &cache, const QSharedPoi
    , mCache(cache)
    , mGit(git)
    , mSettings(settings)
-   , fileSystemModel(new QFileSystemModel())
+   , mFileSystemModel(new QFileSystemModel())
    , mRepoModel(new CommitHistoryModel(mCache, mGit, nullptr))
    , mRepoView(new CommitHistoryView(mCache, mGit, mSettings, nullptr))
-   , fileSystemView(new QTreeView())
+   , mFileSystemView(new QTreeView())
    , mTabWidget(new QTabWidget())
 {
    mTabWidget->setObjectName("HistoryTab");
@@ -46,22 +49,22 @@ BlameWidget::BlameWidget(const QSharedPointer<GitCache> &cache, const QSharedPoi
    mRepoView->filterBySha({});
    connect(mRepoView, &CommitHistoryView::customContextMenuRequested, this, &BlameWidget::showRepoViewMenu);
    connect(mRepoView, &CommitHistoryView::clicked, this, &BlameWidget::reloadBlame);
-   connect(mRepoView, &CommitHistoryView::doubleClicked, this, &BlameWidget::openDiff);
 
-   fileSystemModel->setFilter(QDir::AllDirs | QDir::Files | QDir::NoDotAndDotDot);
+   mFileSystemModel->setFilter(QDir::AllDirs | QDir::Files | QDir::NoDotAndDotDot);
 
-   fileSystemView->setModel(fileSystemModel);
-   fileSystemView->setMaximumWidth(450);
-   fileSystemView->header()->setSectionHidden(1, true);
-   fileSystemView->header()->setSectionHidden(2, true);
-   fileSystemView->header()->setSectionHidden(3, true);
-   fileSystemView->setContextMenuPolicy(Qt::CustomContextMenu);
-   connect(fileSystemView, &QTreeView::clicked, this, &BlameWidget::showFileHistoryByIndex);
+   mFileSystemView->setModel(mFileSystemModel);
+   mFileSystemView->setMaximumWidth(450);
+   mFileSystemView->header()->setSectionHidden(1, true);
+   mFileSystemView->header()->setSectionHidden(2, true);
+   mFileSystemView->header()->setSectionHidden(3, true);
+   mFileSystemView->setContextMenuPolicy(Qt::CustomContextMenu);
+   connect(mFileSystemView, &QTreeView::clicked, this, &BlameWidget::showFileHistoryByIndex);
+   connect(mFileSystemView, &QTreeView::customContextMenuRequested, this, &BlameWidget::showFileSystemMenu);
 
    const auto historyBlameLayout = new QGridLayout(this);
    historyBlameLayout->setContentsMargins(QMargins());
    historyBlameLayout->addWidget(mRepoView, 0, 0);
-   historyBlameLayout->addWidget(fileSystemView, 1, 0);
+   historyBlameLayout->addWidget(mFileSystemView, 1, 0);
    historyBlameLayout->addWidget(mTabWidget, 0, 1, 2, 1);
 
    mTabWidget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
@@ -69,7 +72,7 @@ BlameWidget::BlameWidget(const QSharedPointer<GitCache> &cache, const QSharedPoi
    connect(mTabWidget, &QTabWidget::tabCloseRequested, mTabWidget, [this](int index) {
       if (index == mLastTabIndex)
       {
-         fileSystemView->clearSelection();
+         mFileSystemView->clearSelection();
          mRepoView->blockSignals(true);
          mRepoView->filterBySha({});
          mRepoView->blockSignals(false);
@@ -91,14 +94,14 @@ BlameWidget::~BlameWidget()
 {
    delete mRepoModel;
    delete mItemDelegate;
-   delete fileSystemModel;
+   delete mFileSystemModel;
 }
 
 void BlameWidget::init(const QString &workingDirectory)
 {
    mWorkingDirectory = workingDirectory;
-   fileSystemModel->setRootPath(workingDirectory);
-   fileSystemView->setRootIndex(fileSystemModel->index(workingDirectory));
+   mFileSystemModel->setRootPath(workingDirectory);
+   mFileSystemView->setRootIndex(mFileSystemModel->index(workingDirectory));
 }
 
 void BlameWidget::showFileHistory(const QString &filePath)
@@ -227,9 +230,24 @@ void BlameWidget::reloadHistory(int tabIndex)
    }
 }
 
+void BlameWidget::showFileSystemMenu(const QPoint &pos)
+{
+   const auto externalEditor = GitQlientSettings().globalValue("ExternalEditor", QString()).toString();
+
+   if (!externalEditor.isEmpty())
+   {
+      const auto menu = new QMenu(this);
+      connect(menu->addAction(tr("Open with external editor")), &QAction::triggered, this,
+              &BlameWidget::openExternalEditor);
+
+      const auto parentPos = mFileSystemView->mapToParent(pos);
+      menu->popup(mapToGlobal(parentPos));
+   }
+}
+
 void BlameWidget::showFileHistoryByIndex(const QModelIndex &index)
 {
-   auto item = fileSystemModel->fileInfo(index);
+   auto item = mFileSystemModel->fileInfo(index);
 
    if (item.isFile())
       showFileHistory(item.filePath());
@@ -251,23 +269,32 @@ void BlameWidget::showRepoViewMenu(const QPoint &pos)
    const auto fileDiff = menu->addAction(tr("Show file diff"));
    connect(fileDiff, &QAction::triggered, this, [this, sha, previousSha]() {
       const auto currentFile = qobject_cast<FileBlameWidget *>(mTabWidget->currentWidget())->getCurrentFile();
-      emit showFileDiff(sha, previousSha, currentFile, false);
-   });
-
-   const auto commitDiff = menu->addAction(tr("Show commit diff"));
-   connect(commitDiff, &QAction::triggered, this, [this, sha, previousSha]() {
-      emit signalOpenDiff({ previousSha, sha });
+      emit showFileDiff(sha, previousSha, currentFile);
    });
 
    menu->exec(mRepoView->viewport()->mapToGlobal(pos));
 }
 
-void BlameWidget::openDiff(const QModelIndex &index)
+void BlameWidget::openExternalEditor()
 {
-   const auto sha
-       = mRepoView->model()->index(index.row(), static_cast<int>(CommitHistoryColumns::Sha)).data().toString();
-   const auto previousSha
-       = mRepoView->model()->index(index.row() + 1, static_cast<int>(CommitHistoryColumns::Sha)).data().toString();
+   const auto externalEditor = GitQlientSettings().globalValue("ExternalEditor", QString()).toString();
+   const auto item = mFileSystemView->selectionModel()->currentIndex();
 
-   emit signalOpenDiff({ previousSha, sha });
+   auto absoluteFilePath = mFileSystemModel->filePath(item);
+
+   auto arguments = externalEditor.split(" ");
+   arguments.append(absoluteFilePath);
+   const auto app = arguments.takeFirst();
+
+   QProcess p;
+   p.setEnvironment(QProcess::systemEnvironment());
+
+   const auto ret = p.startDetached(app, arguments);
+
+   if (!ret)
+   {
+      QMessageBox::critical(
+          parentWidget(), tr("Error opening file editor"),
+          tr("There was a problem opening the file editor, please review the value set in GitQlient config."));
+   }
 }

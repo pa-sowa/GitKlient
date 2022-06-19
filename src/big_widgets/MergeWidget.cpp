@@ -1,7 +1,6 @@
 #include "MergeWidget.h"
 
 #include <CommitInfo.h>
-#include <FileDiffWidget.h>
 #include <FileEditor.h>
 #include <GitBase.h>
 #include <GitCache.h>
@@ -12,6 +11,8 @@
 #include <GitWip.h>
 #include <QPinnableTabWidget.h>
 #include <RevisionFiles.h>
+#include <WipDiffWidget.h>
+#include <WipHelper.h>
 
 #include <QFile>
 #include <QLabel>
@@ -35,8 +36,10 @@ MergeWidget::MergeWidget(const QSharedPointer<GitCache> &gitQlientCache, const Q
    , mMergeBtn(new QPushButton(tr("Merge && Commit")))
    , mAbortBtn(new QPushButton(tr("Abort merge")))
    , mStacked(new QStackedWidget())
-   , mFileDiff(new FileDiffWidget(mGit, mGitQlientCache))
+   , mFileDiff(new WipDiffWidget(mGit, mGitQlientCache))
 {
+   mFileDiff->hideHunks();
+
    mCommitTitle->setObjectName("leCommitTitle");
 
    mDescription->setMaximumHeight(125);
@@ -83,8 +86,6 @@ MergeWidget::MergeWidget(const QSharedPointer<GitCache> &gitQlientCache, const Q
    mergeLayout->addStretch(2);
    mergeLayout->addLayout(mergeInfoLayout);
 
-   mFileDiff->hideBackButton();
-
    const auto noFileFrame = new QFrame();
    const auto noFileLayout = new QGridLayout();
    noFileLayout->setContentsMargins(0, 0, 0, 0);
@@ -102,8 +103,8 @@ MergeWidget::MergeWidget(const QSharedPointer<GitCache> &gitQlientCache, const Q
    layout->addWidget(mergeFrame);
    layout->addWidget(mStacked);
 
-   connect(mFileDiff, &FileDiffWidget::exitRequested, this, [this]() { mStacked->setCurrentIndex(0); });
-   connect(mFileDiff, &FileDiffWidget::fileStaged, this, &MergeWidget::onConflictResolved);
+   connect(mFileDiff, &WipDiffWidget::exitRequested, this, [this]() { mStacked->setCurrentIndex(0); });
+   connect(mFileDiff, &WipDiffWidget::fileStaged, this, &MergeWidget::onConflictResolved);
 
    connect(mConflictFiles, &QListWidget::itemClicked, this, &MergeWidget::changeDiffView);
    connect(mConflictFiles, &QListWidget::itemDoubleClicked, this, &MergeWidget::changeDiffView);
@@ -168,7 +169,7 @@ void MergeWidget::fillButtonFileList(const RevisionFiles &files)
       const auto item = new QListWidgetItem(fileName);
       item->setData(Qt::UserRole, fileInConflict);
 
-      GitWip git(mGit, mGitQlientCache);
+      GitWip git(mGit);
 
       if (fileInConflict && fileDeleted)
          item->setData(Qt::UserRole + 1, static_cast<int>(git.getFileStatus(fileName).value()));
@@ -182,7 +183,7 @@ void MergeWidget::fillButtonFileList(const RevisionFiles &files)
 void MergeWidget::changeDiffView(QListWidgetItem *item)
 {
    const auto file = item->text();
-   const auto wip = mGitQlientCache->commitInfo(CommitInfo::ZERO_SHA);
+   const auto wip = mGitQlientCache->commitInfo(ZERO_SHA);
    const auto status = static_cast<GitWip::FileStatus>(item->data(Qt::UserRole + 1).toInt());
 
    if (status != GitWip::FileStatus::BothModified)
@@ -215,8 +216,7 @@ void MergeWidget::changeDiffView(QListWidgetItem *item)
       return;
    }
 
-   const auto configured
-       = mFileDiff->configure(CommitInfo::ZERO_SHA, wip.firstParent(), mGit->getWorkingDir() + "/" + file, false);
+   const auto configured = mFileDiff->setup(mGit->getWorkingDir() + "/" + file, false);
 
    mStacked->setCurrentIndex(configured);
 
@@ -232,7 +232,7 @@ void MergeWidget::abort()
    {
       case ConflictReason::Pull:
       case ConflictReason::Merge: {
-         GitMerge git(mGit, mGitQlientCache);
+         GitMerge git(mGit);
          ret = git.abortMerge();
          break;
       }
@@ -309,7 +309,7 @@ void MergeWidget::commit()
       {
          case ConflictReason::Pull:
          case ConflictReason::Merge: {
-            GitMerge git(mGit, mGitQlientCache);
+            GitMerge git(mGit);
             ret = git.applyMerge(msg);
             break;
          }
@@ -336,7 +336,9 @@ void MergeWidget::commit()
       {
          removeMergeComponents();
 
-         if (!mPendingShas.isEmpty()) { }
+         if (!mPendingShas.isEmpty())
+         {
+         }
 
          emit signalMergeFinished();
       }
@@ -393,12 +395,11 @@ void MergeWidget::cherryPickCommit()
          if (errorMsg.contains("error: could not apply", Qt::CaseInsensitive)
              && errorMsg.contains("after resolving the conflicts", Qt::CaseInsensitive))
          {
-            const auto wipCommit = mGitQlientCache->commitInfo(CommitInfo::ZERO_SHA);
+            const auto wipCommit = mGitQlientCache->commitInfo(ZERO_SHA);
 
-            GitWip git(mGit, mGitQlientCache);
-            git.updateWip();
+            WipHelper::update(mGit, mGitQlientCache);
 
-            const auto files = mGitQlientCache->revisionFile(CommitInfo::ZERO_SHA, wipCommit.firstParent());
+            const auto files = mGitQlientCache->revisionFile(ZERO_SHA, wipCommit.firstParent());
 
             if (files)
                configureForCherryPick(files.value(), shas);

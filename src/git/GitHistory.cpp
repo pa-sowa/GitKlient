@@ -1,6 +1,5 @@
 #include "GitHistory.h"
 
-#include <CommitInfo.h>
 #include <GitBase.h>
 #include <GitConfig.h>
 
@@ -48,16 +47,16 @@ GitExecResult GitHistory::getBranchesDiff(const QString &base, const QString &he
 {
    QLog_Debug("Git", QString("Getting diff between branches: {%1} and {%2}").arg(base, head));
 
-   GitConfig git(mGitBase);
+   QScopedPointer<GitConfig> git(new GitConfig(mGitBase));
 
    QString fullBase = base;
-   auto retBase = git.getRemoteForBranch(base);
+   auto retBase = git->getRemoteForBranch(base);
 
    if (retBase.success)
       fullBase.prepend(retBase.output + QStringLiteral("/"));
 
    QString fullHead = head;
-   auto retHead = git.getRemoteForBranch(head);
+   auto retHead = git->getRemoteForBranch(head);
 
    if (retHead.success)
       fullHead.prepend(retHead.output + QStringLiteral("/"));
@@ -77,7 +76,7 @@ GitExecResult GitHistory::getCommitDiff(const QString &sha, const QString &diffT
 
       QString runCmd = QString("git diff-tree --no-color -r --patch-with-stat -m");
 
-      if (sha != CommitInfo::ZERO_SHA)
+      if (sha != ZERO_SHA)
       {
          runCmd += " -C ";
 
@@ -99,20 +98,30 @@ GitExecResult GitHistory::getCommitDiff(const QString &sha, const QString &diffT
    return qMakePair(false, QString());
 }
 
-GitExecResult GitHistory::getFileDiff(const QString &currentSha, const QString &previousSha, const QString &file,
-                                      bool isStaged, int contextLineCount)
+GitExecResult GitHistory::getWipFileDiff(const QString &file, bool isCached) const
+{
+   QLog_Debug(
+       "Git",
+       QString("Getting diff for a WIP %1 file: {%2}").arg(QString::fromUtf8(isCached ? "unstaged" : "staged"), file));
+
+   const auto cmd = QString("git diff %1 %2 ").arg(QString::fromUtf8(isCached ? "--cached" : ""), file);
+
+   QLog_Trace("Git", QString("Getting diff for the WIP file: {%1}").arg(cmd));
+
+   return mGitBase->run(cmd);
+}
+
+GitExecResult GitHistory::getFullFileDiff(const QString &currentSha, const QString &previousSha, const QString &file,
+                                          bool isCached)
 {
    QLog_Debug("Git", QString("Getting diff for a file: {%1} between {%2} and {%3}").arg(file, currentSha, previousSha));
 
-   auto cmd = QString("git diff %1 -w -U%2 ").arg(QString::fromUtf8(isStaged ? "--cached" : "")).arg(contextLineCount);
+   auto cmd = QString("git diff %1 -w -U15000 ").arg(QString::fromUtf8(isCached ? "--cached" : ""));
 
-   if (currentSha.isEmpty() || currentSha == CommitInfo::ZERO_SHA)
-   {
-      cmd.append("-- ");
+   if (currentSha.isEmpty() || currentSha == ZERO_SHA)
       cmd.append(file);
-   }
    else
-      cmd.append(QString("%1 %2 -- %3").arg(previousSha, currentSha, file));
+      cmd.append(QString("%1 %2 %3").arg(previousSha, currentSha, file));
 
    QLog_Trace("Git", QString("Getting diff for a file: {%1}").arg(cmd));
 
@@ -125,7 +134,7 @@ GitExecResult GitHistory::getDiffFiles(const QString &sha, const QString &diffTo
 
    auto runCmd = QString("git diff-tree -C --no-color -r -m ");
 
-   if (!diffToSha.isEmpty() && sha != CommitInfo::ZERO_SHA)
+   if (!diffToSha.isEmpty() && sha != ZERO_SHA)
       runCmd.append(diffToSha + " " + sha);
    else
       runCmd.append("4b825dc642cb6eb9a060e54bf8d69288fbee4904 " + sha);
@@ -143,7 +152,7 @@ GitExecResult GitHistory::getUntrackedFileDiff(const QString &file) const
 
    QLog_Trace("Git", QString("Simulating we stage the file: {%1}").arg(cmd));
 
-   if (mGitBase->run(cmd))
+   if (auto ret = mGitBase->run(cmd); ret.success)
    {
       cmd = QString("git diff %1").arg(file);
 

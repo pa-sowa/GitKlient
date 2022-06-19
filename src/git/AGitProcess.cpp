@@ -1,7 +1,6 @@
 #include "AGitProcess.h"
 
-#include <GitQlientSettings.h>
-#include <QTemporaryFile>
+#include <QSettings>
 #include <QTextStream>
 
 #include <QLogger.h>
@@ -162,7 +161,7 @@ bool AGitProcess::execute(const QString &command)
       env << "GIT_FLUSH=0"; // skip the fflush() in 'git log'
       env << loginApp();
 
-      const auto gitAlternative = GitQlientSettings().globalValue("gitLocation", "").toString();
+      const auto gitAlternative = QSettings().value("gitLocation", "").toString();
 
       setEnvironment(env);
       setProgram(gitAlternative.isEmpty() ? arguments.takeFirst() : gitAlternative);
@@ -184,7 +183,7 @@ void AGitProcess::onFinished(int exitCode, QProcess::ExitStatus exitStatus)
 {
    Q_UNUSED(exitCode)
 
-   QLog_Debug("Git", QString("Process {%1} finished with code %2").arg(mCommand).arg(exitCode));
+   QLog_Debug("Git", QString("Process {%1} finished.").arg(mCommand));
 
    const auto errorOutput = readAllStandardError();
 

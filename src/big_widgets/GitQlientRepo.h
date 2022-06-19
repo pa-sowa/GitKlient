@@ -24,6 +24,7 @@
  ***************************************************************************************/
 
 #include <QFrame>
+#include <QMap>
 #include <QPointer>
 #include <QThread>
 
@@ -38,17 +39,13 @@ class HistoryWidget;
 class DiffWidget;
 class BlameWidget;
 class MergeWidget;
-class GitServerWidget;
+class IGitServerWidget;
 class QTimer;
 class WaitingDlg;
-class GitServerCache;
+class IGitServerCache;
 class GitTags;
-class ConfigDialog;
 
-namespace Jenkins
-{
-class JenkinsWidget;
-}
+class IJenkinsWidget;
 
 namespace GitServer
 {
@@ -101,6 +98,12 @@ signals:
     */
    void currentBranchChanged();
 
+   /**
+    * @brief moveLogsAndClose Signal triggered when the logs have change the destination folder. GitQlient needs to
+    * restart.
+    */
+   void moveLogsAndClose();
+
 public:
    /*!
     \brief Default constructor.
@@ -136,6 +139,18 @@ public:
    */
    void setRepository(const QString &newDir);
 
+   /**
+    * @brief Sets the plugins loaded by GitQlient to be used by the repo instance.
+    * @param plugins The list of plugins.
+    */
+   void setPlugins(QMap<QString, QObject *> plugins);
+
+   /**
+    * @brief getGitQlientCache Retrieves the GitQlient internal cache object.
+    * @return Shared pointer to the internal cache.
+    */
+   QSharedPointer<GitCache> getGitQlientCache() const { return mGitQlientCache; }
+
 protected:
    /*!
     \brief Overload of the close event cancel any pending loading.
@@ -147,7 +162,7 @@ protected:
 private:
    QString mCurrentDir;
    QSharedPointer<GitCache> mGitQlientCache;
-   QSharedPointer<GitServerCache> mGitServerCache;
+   QSharedPointer<IGitServerCache> mGitServerCache;
    QSharedPointer<GitBase> mGitBase;
    QSharedPointer<GitQlientSettings> mSettings;
    QSharedPointer<GitRepoLoader> mGitLoader;
@@ -157,13 +172,15 @@ private:
    DiffWidget *mDiffWidget = nullptr;
    BlameWidget *mBlameWidget = nullptr;
    MergeWidget *mMergeWidget = nullptr;
-   GitServerWidget *mGitServerWidget = nullptr;
-   Jenkins::JenkinsWidget *mJenkins = nullptr;
+   IGitServerWidget *mGitServerWidget = nullptr;
+   IJenkinsWidget *mJenkins = nullptr;
+   QMap<QString, QObject *> mPlugins;
    QTimer *mAutoFetch = nullptr;
    QTimer *mAutoFilesUpdate = nullptr;
    QTimer *mAutoPrUpdater = nullptr;
    QPointer<WaitingDlg> mWaitDlg;
-   QPair<ControlsMainViews, QWidget *> mPreviousView;
+   int mPreviousView;
+   QMap<ControlsMainViews, int> mIndexMap;
    QSharedPointer<GitServer::IRestApi> mApi;
 
    bool mIsInit = false;
@@ -174,17 +191,6 @@ private:
 
    */
    void updateUiFromWatcher();
-   /*!
-    \brief Opens the diff view with the selected commit from the repository view.
-    \param currentSha The current selected commit SHA.
-   */
-   void openCommitDiff(const QString currentSha);
-   /*!
-    \brief Opens the diff view with the selected SHAs to compare between them.
-
-    \param shas The list of shas to compare between.
-   */
-   void openCommitCompareDiff(const QStringList &shas);
    /*!
     \brief Method called when changes are commites through the WIP widget.
 
@@ -226,7 +232,7 @@ private:
     \param previousSha The SHA to compare to.
     \param file The file to show the diff.
    */
-   void loadFileDiff(const QString &currentSha, const QString &previousSha, const QString &file, bool isStaged);
+   void loadFileDiff(const QString &currentSha, const QString &previousSha, const QString &file);
 
    /*!
     \brief Shows the history/repository view.
@@ -283,7 +289,13 @@ private:
     */
    void showBuildSystemView();
 
+   void buildSystemActivationToggled(bool enabled);
+
+   void gitServerActivationToggled(bool enabled);
+
    void showConfig();
+
+   void showTerminal();
 
    /*!
     \brief Opens the previous view. This method is used when the diff view is closed and GitQlientRepo must return to
@@ -297,6 +309,13 @@ private:
    */
    void updateWip();
 
+   /**
+    * @brief reconfigureAutoFetch Changes the interval for the auto fetch timer.
+    * @param newInterval The new interval (in minutes) to automatically fetch the data from the server.
+    */
+   void reconfigureAutoFetch(int newInterval);
+
+private slots:
    /**
     * @brief focusHistoryOnBranch Opens the graph view and focuses on the SHA of the last commit of the given branch.
     * @param branch The branch.

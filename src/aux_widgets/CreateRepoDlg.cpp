@@ -33,7 +33,10 @@ CreateRepoDlg::CreateRepoDlg(CreateRepoDlgType type, QSharedPointer<GitConfig> g
    const auto defaultLocation = settings.globalValue("DefaultCloneLocation", QString()).toString();
 
    if (!defaultLocation.isEmpty())
+   {
       ui->lePath->setText(defaultLocation);
+      ui->chbDefaultDir->setChecked(true);
+   }
 
    setWindowTitle(QString(tr("%1 repository"))
                       .arg(mType == CreateRepoDlgType::INIT ? QString(tr("Initialize")) : QString(tr("Clone"))));
@@ -41,6 +44,7 @@ CreateRepoDlg::CreateRepoDlg(CreateRepoDlgType type, QSharedPointer<GitConfig> g
    connect(ui->leURL, &QLineEdit::returnPressed, this, &CreateRepoDlg::accept);
    connect(ui->leURL, &QLineEdit::textChanged, this, &CreateRepoDlg::addDefaultName);
    connect(ui->pbBrowse, &QPushButton::clicked, this, &CreateRepoDlg::selectFolder);
+   connect(ui->lePath, &QLineEdit::textEdited, this, &CreateRepoDlg::verifyDefaultFolder);
    connect(ui->lePath, &QLineEdit::returnPressed, this, &CreateRepoDlg::accept);
    connect(ui->leRepoName, &QLineEdit::returnPressed, this, &CreateRepoDlg::accept);
    connect(ui->pbAccept, &QPushButton::clicked, this, &CreateRepoDlg::accept);
@@ -53,6 +57,15 @@ CreateRepoDlg::CreateRepoDlg(CreateRepoDlgType type, QSharedPointer<GitConfig> g
 CreateRepoDlg::~CreateRepoDlg()
 {
    delete ui;
+}
+
+void CreateRepoDlg::verifyDefaultFolder()
+{
+   GitQlientSettings settings;
+   const auto isSameDir = settings.globalValue("DefaultCloneLocation", QString()).toString() == ui->lePath->text();
+
+   if (ui->chbDefaultDir->isChecked() && !isSameDir)
+      ui->chbDefaultDir->setChecked(false);
 }
 
 void CreateRepoDlg::selectFolder()
@@ -87,6 +100,25 @@ void CreateRepoDlg::showGitControls()
    ui->leGitEmail->setVisible(checkedState);
 }
 
+void CreateRepoDlg::saveConfigAndAccept(const QString &fullPath)
+{
+   GitQlientSettings settings;
+
+   if (ui->chbDefaultDir->isChecked()
+       && settings.globalValue("DefaultCloneLocation", QString()).toString() == ui->lePath->text())
+   {
+      settings.setGlobalValue("DefaultCloneLocation", ui->lePath->text());
+   }
+
+   if (ui->cbGitUser->isChecked())
+      mGit->setLocalUserInfo({ ui->leGitName->text().trimmed(), ui->leGitEmail->text().trimmed() });
+
+   if (ui->chbOpen->isChecked())
+      emit signalOpenWhenFinish(fullPath);
+
+   QDialog::accept();
+}
+
 void CreateRepoDlg::accept()
 {
    auto path = ui->lePath->text().trimmed();
@@ -115,13 +147,16 @@ void CreateRepoDlg::accept()
             if (!dir.exists())
                dir.mkpath(fullPath);
 
-            ret = mGit->clone(url, fullPath);
+            ret.success = true;
+
+            mClonePath = fullPath;
+            mCloneUrl = url;
          }
          else
          {
             const auto msg = QString(tr("You need to provider a URL to clone a repository."));
 
-            QMessageBox::critical(this, tr("Nor URL provided"), msg);
+            ret.output = msg;
 
             QLog_Error("UI", msg);
          }
@@ -135,24 +170,10 @@ void CreateRepoDlg::accept()
       QApplication::restoreOverrideCursor();
 
       if (ret.success)
-      {
-         if (ui->chbDefaultDir->isChecked())
-         {
-            GitQlientSettings settings;
-            settings.setGlobalValue("DefaultCloneLocation", ui->lePath->text());
-         }
-
-         if (ui->cbGitUser->isChecked())
-            mGit->setLocalUserInfo({ ui->leGitName->text().trimmed(), ui->leGitEmail->text().trimmed() });
-
-         if (ui->chbOpen->isChecked())
-            emit signalOpenWhenFinish(fullPath);
-
-         QDialog::accept();
-      }
+         saveConfigAndAccept(fullPath);
       else
       {
-         QMessageBox::critical(this, tr("Error when %1").arg(actionApplied), ret.output);
+         QMessageBox::critical(this, tr("Error when %1:\n%2").arg(actionApplied), ret.output);
 
          QLog_Error("UI", ret.output);
       }

@@ -16,8 +16,10 @@
 #include <QEvent>
 #include <QFile>
 #include <QFileDialog>
+#include <QLibrary>
 #include <QMenu>
 #include <QMessageBox>
+#include <QPluginLoader>
 #include <QProcess>
 #include <QPushButton>
 #include <QStackedLayout>
@@ -25,6 +27,10 @@
 #include <QTabBar>
 #include <QTextStream>
 #include <QToolButton>
+
+#include <IGitServerWidget.h>
+#include <IJenkinsWidget.h>
+#include <qtermwidget_interface.h>
 
 #include <QLogger.h>
 
@@ -40,6 +46,8 @@ GitQlient::GitQlient(QWidget *parent)
    QLog_Info("UI", "*          GitQlient has started          *");
    QLog_Info("UI", QString("*                  %1                  *").arg(VER));
    QLog_Info("UI", "*******************************************");
+
+   loadPlugins();
 
    setStyleSheet(GitQlientStyles::getStyles());
 
@@ -122,6 +130,12 @@ GitQlient::GitQlient(QWidget *parent)
 
 GitQlient::~GitQlient()
 {
+   if (mTerminal.second)
+   {
+      mTerminal.second->sendText("exit\n");
+      delete mTerminal.second;
+   }
+
    QStringList pinnedRepos;
    const auto totalTabs = mRepos->count();
 
@@ -174,13 +188,19 @@ void GitQlient::openRepoWithPath(const QString &path)
 
 void GitQlient::cloneRepo()
 {
+   mPathToOpen = "";
    CreateRepoDlg cloneDlg(CreateRepoDlgType::CLONE, mGit);
    connect(&cloneDlg, &CreateRepoDlg::signalOpenWhenFinish, this, [this](const QString &path) { mPathToOpen = path; });
 
    if (cloneDlg.exec() == QDialog::Accepted)
    {
-      mProgressDlg = new ProgressDlg(tr("Loading repository..."), QString(), 100, false);
+      const auto data = cloneDlg.getCloneInfo();
+
+      mProgressDlg = new ProgressDlg(tr("Clonin g repository..."), QString(), 100, false);
       connect(mProgressDlg, &ProgressDlg::destroyed, this, [this]() { mProgressDlg = nullptr; });
+
+      mGit->clone(data.first, data.second);
+
       mProgressDlg->show();
    }
 }
@@ -194,11 +214,14 @@ void GitQlient::initRepo()
 
 void GitQlient::updateProgressDialog(QString stepDescription, int value)
 {
+   if (!mProgressDlg)
+      return;
+
    if (value >= 0)
    {
       mProgressDlg->setValue(value);
 
-      if (stepDescription.contains("done", Qt::CaseInsensitive))
+      if (stepDescription.contains("done", Qt::CaseInsensitive) && !mPathToOpen.isEmpty())
       {
          mProgressDlg->close();
          openRepoWithPath(mPathToOpen);
@@ -298,7 +321,8 @@ bool GitQlient::parseArguments(const QStringList &arguments, QStringList *repos)
 
    const auto manager = QLoggerManager::getInstance();
    manager->addDestination("GitKlient.log", { "UI", "Git", "Cache" }, logLevel,
-                           QStandardPaths::writableLocation(QStandardPaths::CacheLocation));
+                           QStandardPaths::writableLocation(QStandardPaths::CacheLocation), LogMode::OnlyFile,
+                           LogFileDisplay::DateTime, LogMessageDisplay::Default, false);
 
    return ret;
 }
@@ -342,6 +366,24 @@ void GitQlient::addNewRepoTab(const QString &repoPathArg, bool pinned)
          connect(repo, &GitQlientRepo::currentBranchChanged, this, &GitQlient::updateWindowTitle);
 
          repo->setRepository(repoName);
+
+         if (!mPlugins.isEmpty() || (mPlugins.empty() && mJenkinsPluginInstance.second)
+             || (mPlugins.empty() && mGitServerPluginInstance.second) || (mPlugins.empty() && mTerminal.second))
+         {
+            decltype(mPlugins) plugins;
+            plugins = mPlugins;
+
+            if (mJenkinsPluginInstance.second)
+               plugins[mJenkinsPluginInstance.first] = mJenkinsPluginInstance.second->createWidget();
+
+            if (mGitServerPluginInstance.second)
+               plugins[mGitServerPluginInstance.first] = mGitServerPluginInstance.second->createWidget(git);
+
+            if (mTerminal.second)
+               plugins[mTerminal.first] = dynamic_cast<QObject *>(mTerminal.second->createWidget(0));
+
+            repo->setPlugins(plugins);
+         }
 
          if (!repoPath.isEmpty())
          {
@@ -448,6 +490,66 @@ void GitQlient::updateWindowTitle()
          const auto currentBranch = currentTab->currentBranch();
 
          setWindowTitle(QString("%1 (%2) - GitKlient %3").arg(currentName, currentBranch, VER));
+      }
+   }
+}
+
+void GitQlient::loadPlugins()
+{
+   QDir pluginsDir(QSettings().value("PluginsFolder").toString());
+#if defined(Q_OS_WIN)
+   if (pluginsDir.dirName().toLower() == "debug" || pluginsDir.dirName().toLower() == "release")
+      pluginsDir.cdUp();
+#elif defined(Q_OS_MAC)
+   if (pluginsDir.dirName() == "MacOS")
+   {
+      pluginsDir.cdUp();
+      pluginsDir.cdUp();
+      pluginsDir.cdUp();
+   }
+#endif
+
+   const auto entries = pluginsDir.entryList(QDir::Files);
+
+   for (const auto &fileName : entries)
+   {
+      QPluginLoader pluginLoader(pluginsDir.absoluteFilePath(fileName));
+      if (const auto plugin = pluginLoader.instance())
+      {
+         const auto metadata = pluginLoader.metaData();
+         const auto name = metadata.value("MetaData").toObject().value("Name").toString();
+         const auto version = metadata.value("MetaData").toObject().value("Version").toString();
+         const auto newKey = QString("%1-%2").arg(name, version);
+
+         if (name.contains("jenkins", Qt::CaseInsensitive))
+            mJenkinsPluginInstance = qMakePair(newKey, qobject_cast<IJenkinsWidget *>(plugin));
+         else if (name.contains("gitserver", Qt::CaseInsensitive))
+         {
+            bool loaded = true;
+
+            QLibrary webChannel("libQt5WebChannel");
+            loaded &= webChannel.load();
+
+            if (!loaded)
+               QLog_Error("UI", QString("Impossible to load QtWebChannel: %1").arg(webChannel.errorString()));
+
+            QLibrary webEngineWidgets("libQt5WebEngineWidgets");
+            loaded &= webEngineWidgets.load();
+
+            if (loaded)
+               mGitServerPluginInstance = qMakePair(newKey, qobject_cast<IGitServerWidget *>(plugin));
+            else
+               QLog_Error("UI", "It was impossible to load the GitServerPlugin since there are dependencies missing.");
+         }
+         else if (name.contains("qtermwidget", Qt::CaseInsensitive))
+            mTerminal = qMakePair(newKey, qobject_cast<QTermWidgetInterface *>(plugin));
+         else
+            mPlugins[newKey] = plugin;
+      }
+      else
+      {
+         const auto errorStr = pluginLoader.errorString();
+         QLog_Error("UI", QString("%1").arg(errorStr));
       }
    }
 }

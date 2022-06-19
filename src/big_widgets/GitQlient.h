@@ -23,6 +23,7 @@
  ** Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  ***************************************************************************************/
 
+#include <QMap>
 #include <QSet>
 #include <QWidget>
 
@@ -33,6 +34,9 @@ class GitConfig;
 class QStackedLayout;
 class GitQlientSettings;
 class GitBase;
+class IJenkinsWidget;
+class IGitServerWidget;
+class QTermWidgetInterface;
 
 /*!
  \brief The GitQlient class is the MainWindow of the GitQlient application. Is the widget that stores all the tabs about
@@ -100,6 +104,10 @@ private:
    QSharedPointer<GitConfig> mGit;
    ProgressDlg *mProgressDlg = nullptr;
    QString mPathToOpen;
+   QMap<QString, QObject *> mPlugins;
+   QPair<QString, IJenkinsWidget *> mJenkinsPluginInstance;
+   QPair<QString, IGitServerWidget *> mGitServerPluginInstance;
+   QPair<QString, QTermWidgetInterface *> mTerminal;
 
    /*!
     \brief Opens a QFileDialog to select a repository in the local disk.
@@ -180,4 +188,6 @@ private:
     * @param currentTabIndex The current tab index used to retrieve the repository.
     */
    void updateWindowTitle();
+
+   void loadPlugins();
 };

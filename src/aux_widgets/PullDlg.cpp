@@ -1,6 +1,8 @@
 #include "PullDlg.h"
 #include "ui_PullDlg.h"
 
+#include <GitBase.h>
+#include <GitQlientSettings.h>
 #include <GitQlientStyles.h>
 #include <GitRemote.h>
 
@@ -15,6 +17,7 @@ PullDlg::PullDlg(QSharedPointer<GitBase> git, const QString &text, QWidget *pare
    ui->setupUi(this);
 
    ui->lText->setText(text);
+   ui->lQuestion->setText(tr("<strong>Would you like to pull the last changes?</strong>"));
    ui->buttonBox->button(QDialogButtonBox::Ok)->setText("Pull");
 
    setStyleSheet(GitQlientStyles::getStyles());
@@ -27,10 +30,13 @@ PullDlg::~PullDlg()
 
 void PullDlg::accept()
 {
+   GitQlientSettings settings(mGit->getGitDir());
+   const auto updateOnPull = settings.localValue("UpdateOnPull", true).toBool();
+
    GitRemote remote(mGit);
 
    QApplication::setOverrideCursor(QCursor(Qt::WaitCursor));
-   const auto ret = remote.pull();
+   const auto ret = remote.pull(updateOnPull);
    QApplication::restoreOverrideCursor();
 
    if (ret.success)

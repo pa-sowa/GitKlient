@@ -30,15 +30,16 @@
 #include <QVector>
 
 class GitBase;
-class GitCache;
 
 class GitTags : public QObject
 {
    Q_OBJECT
 
+signals:
+   void remoteTagsReceived(QMap<QString, QString> tags);
+
 public:
    explicit GitTags(const QSharedPointer<GitBase> &gitBase);
-   explicit GitTags(const QSharedPointer<GitBase> &gitBase, const QSharedPointer<GitCache> &cache);
 
    bool getRemoteTags() const;
    GitExecResult addTag(const QString &tagName, const QString &tagMessage, const QString &sha);
@@ -48,7 +49,6 @@ public:
 
 private:
    QSharedPointer<GitBase> mGitBase;
-   QSharedPointer<GitCache> mCache;
 
    void onRemoteTagsRecieved(GitExecResult result);
 };

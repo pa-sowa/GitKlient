@@ -115,6 +115,21 @@ public:
     \return QColor
    */
    static QColor getOrange();
+
+   /*!
+    \brief Gets the GitQlient red color.
+
+   \return QColor
+       */
+   static QColor getShadowedRed();
+
+   /*!
+    \brief Gets the GitQlient green color.
+
+   \return QColor
+       */
+   static QColor getShadowedGreen();
+
    /*!
     \brief Gets the total count of branch colors.
 

@@ -22,7 +22,6 @@ class ConfigDialog : public QDialog
 signals:
    void reloadView();
    void reloadDiffFont();
-   void buildSystemConfigured(bool configured);
    void commitTitleMaxLenghtChanged();
    void panelsVisibilityChanged();
 
@@ -41,7 +40,6 @@ private:
 
    void clearCache();
    void calculateCacheSize();
-   void toggleBsAccesInfo();
    void enableWidgets();
    void saveFile();
    void showCredentialsDlg();

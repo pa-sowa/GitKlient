@@ -88,7 +88,7 @@ ConfigDialog::ConfigDialog(const QSharedPointer<GitBase> &git, QWidget *parent)
    ui->chEnableLogs->setChecked(settings.globalValue("logsEnabled", false).toBool());
    ui->cbLogLevel->setCurrentIndex(settings.globalValue("logsLevel", static_cast<int>(LogLevel::Warning)).toInt());
    ui->spCommitTitleLength->setValue(settings.globalValue("commitTitleMaxLength", 50).toInt());
-   ui->sbEditorFontSize->setValue(settings.globalValue("FileDiffView/FontSize", 8).toInt());
+   ui->sbEditorFontSize->setValue(settings.globalValue("FileDiffView/FontSize", font()).toInt());
    ui->cbEditorFontFamily->setCurrentText(settings.globalValue("FileDiffView/FontFamily").toString());
 
    const auto originalStyles = settings.globalValue("colorSchema", "dark").toString();
@@ -106,33 +106,13 @@ ConfigDialog::ConfigDialog(const QSharedPointer<GitBase> &git, QWidget *parent)
    ui->tabWidget->setCurrentIndex(0);
    connect(ui->pbClearCache, &ButtonLink::clicked, this, &ConfigDialog::clearCache);
 
+   ui->cbLocal->setChecked(settings.localValue("LocalHeader", true).toBool());
+   ui->cbRemote->setChecked(settings.localValue("RemoteHeader", true).toBool());
+   ui->cbTags->setChecked(settings.localValue("TagsHeader", true).toBool());
    ui->cbStash->setChecked(settings.localValue("StashesHeader", true).toBool());
    ui->cbSubmodule->setChecked(settings.localValue("SubmodulesHeader", true).toBool());
    ui->cbSubtree->setChecked(settings.localValue("SubtreeHeader", true).toBool());
    ui->cbDeleteFolder->setChecked(settings.localValue("DeleteRemoteFolder", false).toBool());
-
-   // Build System configuration
-   const auto isConfigured = settings.localValue("BuildSystemEnabled", false).toBool();
-   ui->chBoxBuildSystem->setChecked(isConfigured);
-   connect(ui->chBoxBuildSystem, &QCheckBox::stateChanged, this, &ConfigDialog::toggleBsAccesInfo);
-
-   ui->leBsUser->setVisible(isConfigured);
-   ui->leBsUserLabel->setVisible(isConfigured);
-   ui->leBsToken->setVisible(isConfigured);
-   ui->leBsTokenLabel->setVisible(isConfigured);
-   ui->leBsUrl->setVisible(isConfigured);
-   ui->leBsUrlLabel->setVisible(isConfigured);
-
-   if (isConfigured)
-   {
-      const auto url = settings.localValue("BuildSystemUrl", "").toString();
-      const auto user = settings.localValue("BuildSystemUser", "").toString();
-      const auto token = settings.localValue("BuildSystemToken", "").toString();
-
-      ui->leBsUrl->setText(url);
-      ui->leBsUser->setText(user);
-      ui->leBsToken->setText(token);
-   }
 
    GitConfig gitConfig(mGit);
 
@@ -223,17 +203,6 @@ void ConfigDialog::calculateCacheSize()
    ui->lCacheSize->setText(humanReadableSize(size));
 }
 
-void ConfigDialog::toggleBsAccesInfo()
-{
-   const auto visible = ui->chBoxBuildSystem->isChecked();
-   ui->leBsUser->setVisible(visible);
-   ui->leBsUserLabel->setVisible(visible);
-   ui->leBsToken->setVisible(visible);
-   ui->leBsTokenLabel->setVisible(visible);
-   ui->leBsUrl->setVisible(visible);
-   ui->leBsUrlLabel->setVisible(visible);
-}
-
 void ConfigDialog::saveConfig()
 {
    GitQlientSettings settings(mGit->getGitDir());
@@ -278,6 +247,9 @@ void ConfigDialog::saveConfig()
    settings.setLocalValue("UpdateOnPull", ui->updateOnPull->isChecked());
    settings.setLocalValue("MaxCommits", ui->sbMaxCommits->value());
 
+   settings.setLocalValue("LocalHeader", ui->cbLocal->isChecked());
+   settings.setLocalValue("RemoteHeader", ui->cbRemote->isChecked());
+   settings.setLocalValue("TagsHeader", ui->cbTags->isChecked());
    settings.setLocalValue("StashesHeader", ui->cbStash->isChecked());
    settings.setLocalValue("SubmodulesHeader", ui->cbSubmodule->isChecked());
    settings.setLocalValue("SubtreeHeader", ui->cbSubtree->isChecked());
@@ -285,27 +257,6 @@ void ConfigDialog::saveConfig()
    settings.setLocalValue("DeleteRemoteFolder", ui->cbDeleteFolder->isChecked());
 
    emit panelsVisibilityChanged();
-
-   /* BUILD SYSTEM CONFIG */
-
-   const auto showBs = ui->chBoxBuildSystem->isChecked();
-   const auto bsUser = ui->leBsUser->text();
-   const auto bsToken = ui->leBsToken->text();
-   const auto bsUrl = ui->leBsUrl->text();
-
-   if (showBs && !bsUser.isEmpty() && !bsToken.isEmpty() && !bsUrl.isEmpty())
-   {
-      settings.setLocalValue("BuildSystemEnabled", showBs);
-      settings.setLocalValue("BuildSystemUrl", bsUrl);
-      settings.setLocalValue("BuildSystemUser", bsUser);
-      settings.setLocalValue("BuildSystemToken", bsToken);
-      emit buildSystemConfigured(showBs);
-   }
-   else
-   {
-      settings.setLocalValue("BuildSystemEnabled", false);
-      emit buildSystemConfigured(false);
-   }
 }
 
 void ConfigDialog::enableWidgets()

@@ -25,6 +25,7 @@
 
 #include <QFrame>
 
+class QAbstractItemView;
 class BranchTreeWidget;
 class QListWidget;
 class QListWidgetItem;
@@ -32,6 +33,7 @@ class QLabel;
 class GitBase;
 class GitTags;
 class GitCache;
+class GitQlientSettings;
 class QPushButton;
 class BranchesWidgetMinimal;
 class QTreeWidget;
@@ -145,20 +147,27 @@ public:
    void onPanelsVisibilityChaned();
 
 private:
+   struct Panel
+   {
+      QString key;
+      QLabel *arrowLabel = nullptr;
+      QWidget *viewWidget = nullptr;
+   };
+
    QSharedPointer<GitCache> mCache;
    QSharedPointer<GitBase> mGit;
    QSharedPointer<GitTags> mGitTags;
    BranchTreeWidget *mLocalBranchesTree = nullptr;
+   QLabel *mLocalBranchesTitleLabel = nullptr;
    BranchTreeWidget *mRemoteBranchesTree = nullptr;
+   QLabel *mRemoteBranchesTitleLabel = nullptr;
    RefTreeWidget *mTagsTree = nullptr;
+   QLabel *mTagsTitleLabel = nullptr;
    QListWidget *mStashesList = nullptr;
    QLabel *mStashesTitleLabel = nullptr;
-   QLabel *mStashesArrow = nullptr;
    QLabel *mSubmodulesTitleLabel = nullptr;
-   QLabel *mSubmodulesArrow = nullptr;
    QListWidget *mSubmodulesList = nullptr;
    QLabel *mSubtreeTitleLabel = nullptr;
-   QLabel *mSubtreeArrow = nullptr;
    QListWidget *mSubtreeList = nullptr;
    QPushButton *mMinimize = nullptr;
    QFrame *mFullBranchFrame = nullptr;
@@ -166,6 +175,7 @@ private:
    QString mLastSearch;
    int mLastIndex;
    RefTreeWidget *mLastTreeSearched = nullptr;
+   QVector<Panel> m_panels;
 
    /**
     * @brief fullView Shows the full branches view.
@@ -242,21 +252,7 @@ private:
     * @param p The position where the menu will be displayed.
     */
    void showSubtreesContextMenu(const QPoint &p);
-   /*!
-    \brief Expands or contracts the stashes list widget.
 
-   */
-   void onStashesHeaderClicked();
-   /*!
-    \brief Expands or contracts the submodules list widget.
-
-   */
-   void onSubmodulesHeaderClicked();
-
-   /**
-    * @brief onSubtreesHeaderClicked Expands or contracts the subtrees list widget.
-    */
-   void onSubtreesHeaderClicked();
    /*!
     \brief Gets the SHA for a given tag and notifies the UI that it should select it in the repository view.
 
@@ -283,4 +279,6 @@ private:
    void onSearchBranch();
 
    QPair<QString, QString> getSubtreeData(const QString &prefix);
+
+   QFrame *addSection(QLabel *titleLabel, QAbstractItemView *view, GitQlientSettings &settings, const QString &key);
 };

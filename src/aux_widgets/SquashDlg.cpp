@@ -8,6 +8,7 @@
 #include <GitMerge.h>
 #include <GitQlientSettings.h>
 #include <GitWip.h>
+#include <WipHelper.h>
 
 #include <QLabel>
 #include <QMessageBox>
@@ -70,10 +71,9 @@ void SquashDlg::accept()
 
    if (checkMsg(msg))
    {
-      const auto revInfo = mCache->commitInfo(CommitInfo::ZERO_SHA);
+      const auto revInfo = mCache->commitInfo(ZERO_SHA);
 
-      GitWip gitWip(mGit, mCache);
-      gitWip.updateWip();
+      WipHelper::update(mGit, mCache);
 
       const auto lastChild = mCache->commitInfo(mShas.last());
 
@@ -103,7 +103,7 @@ void SquashDlg::accept()
 
             // Create auxiliary branch for final rebase
             const auto auxBranch3 = QUuid::createUuid().toString();
-            const auto lastCommit = mCache->commitInfo(CommitInfo::ZERO_SHA).firstParent();
+            const auto lastCommit = mCache->commitInfo(ZERO_SHA).firstParent();
             gitBranches.createBranchAtCommit(lastCommit, auxBranch3);
 
             // Reset hard to the first commit to squash
@@ -111,8 +111,11 @@ void SquashDlg::accept()
             gitLocal.resetCommit(mShas.constFirst(), GitLocal::CommitResetType::HARD);
 
             // Merge squash auxiliary branch 2
-            GitMerge gitMerge(mGit, mCache);
+            GitMerge gitMerge(mGit);
             const auto ret = gitMerge.squashMerge(mGit->getCurrentBranch(), { auxBranch2 }, msg);
+
+            if (ret.success)
+               WipHelper::update(mGit, mCache);
 
             gitBranches.removeLocalBranch(auxBranch2);
 
@@ -123,6 +126,10 @@ void SquashDlg::accept()
             gitBranches.removeLocalBranch(auxBranch1);
             gitBranches.checkoutLocalBranch(destBranch);
             gitMerge.merge(destBranch, { auxBranch3 });
+
+            if (ret.success)
+               WipHelper::update(mGit, mCache);
+
             gitBranches.removeLocalBranch(auxBranch3);
          }
       }

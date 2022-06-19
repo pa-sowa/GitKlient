@@ -17,13 +17,11 @@
 using namespace QLogger;
 
 CommitHistoryView::CommitHistoryView(const QSharedPointer<GitCache> &cache, const QSharedPointer<GitBase> &git,
-                                     const QSharedPointer<GitQlientSettings> &settings,
-                                     const QSharedPointer<GitServerCache> &gitServerCache, QWidget *parent)
+                                     const QSharedPointer<GitQlientSettings> &settings, QWidget *parent)
    : QTreeView(parent)
    , mCache(cache)
    , mGit(git)
    , mSettings(settings)
-   , mGitServerCache(gitServerCache)
 {
    setEnabled(false);
    setContextMenuPolicy(Qt::CustomContextMenu);
@@ -37,14 +35,6 @@ CommitHistoryView::CommitHistoryView(const QSharedPointer<GitCache> &cache, cons
    connect(header(), &QHeaderView::customContextMenuRequested, this, &CommitHistoryView::onHeaderContextMenu);
 
    connect(mCache.get(), &GitCache::signalCacheUpdated, this, &CommitHistoryView::refreshView);
-
-   connect(this, &CommitHistoryView::doubleClicked, this, [this](const QModelIndex &index) {
-      if (mCommitHistoryModel)
-      {
-         const auto sha = mCommitHistoryModel->sha(index.row());
-         emit signalOpenDiff(sha);
-      }
-   });
 }
 
 void CommitHistoryView::setModel(QAbstractItemModel *model)
@@ -130,24 +120,17 @@ void CommitHistoryView::refreshView()
    QModelIndex topLeft;
    QModelIndex bottomRight;
 
-   if (mProxyModel)
-   {
-      topLeft = mProxyModel->index(0, 0);
-      bottomRight = mProxyModel->index(mProxyModel->rowCount() - 1, mProxyModel->columnCount() - 1);
-      mProxyModel->beginResetModel();
-      mProxyModel->endResetModel();
-   }
-   else
+   if (!mProxyModel)
    {
       topLeft = mCommitHistoryModel->index(0, 0);
       bottomRight
           = mCommitHistoryModel->index(mCommitHistoryModel->rowCount() - 1, mCommitHistoryModel->columnCount() - 1);
       mCommitHistoryModel->onNewRevisions(mCache->commitCount());
-   }
 
-   const auto auxTL = visualRect(topLeft);
-   const auto auxBR = visualRect(bottomRight);
-   viewport()->update(auxTL.x(), auxTL.y(), auxBR.x() + auxBR.width(), auxBR.y() + auxBR.height());
+      const auto auxTL = visualRect(topLeft);
+      const auto auxBR = visualRect(bottomRight);
+      viewport()->update(auxTL.x(), auxTL.y(), auxBR.x() + auxBR.width(), auxBR.y() + auxBR.height());
+   }
 }
 
 void CommitHistoryView::onHeaderContextMenu(const QPoint &pos)
@@ -211,13 +194,10 @@ void CommitHistoryView::showContextMenu(const QPoint &pos)
 
       if (!shas.isEmpty())
       {
-         const auto menu = new CommitHistoryContextMenu(mCache, mGit, mGitServerCache, shas, this);
+         const auto menu = new CommitHistoryContextMenu(mCache, mGit, shas, this);
          connect(menu, &CommitHistoryContextMenu::fullReload, this, &CommitHistoryView::fullReload);
          connect(menu, &CommitHistoryContextMenu::referencesReload, this, &CommitHistoryView::referencesReload);
          connect(menu, &CommitHistoryContextMenu::logReload, this, &CommitHistoryView::logReload);
-         connect(menu, &CommitHistoryContextMenu::signalOpenDiff, this, &CommitHistoryView::signalOpenDiff);
-         connect(menu, &CommitHistoryContextMenu::signalOpenCompareDiff, this,
-                 &CommitHistoryView::signalOpenCompareDiff);
          connect(menu, &CommitHistoryContextMenu::signalAmendCommit, this, &CommitHistoryView::signalAmendCommit);
          connect(menu, &CommitHistoryContextMenu::signalMergeRequired, this, &CommitHistoryView::signalMergeRequired);
          connect(menu, &CommitHistoryContextMenu::mergeSqushRequested, this, &CommitHistoryView::mergeSqushRequested);

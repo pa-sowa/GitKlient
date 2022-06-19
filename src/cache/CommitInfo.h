@@ -61,6 +61,7 @@ public:
    int parentsCount() const;
    QString firstParent() const;
    QStringList parents() const;
+   void setParents(const QStringList &parents);
    bool isInWorkingBranch() const;
 
    void setLanes(QVector<Lane> lanes);
@@ -77,9 +78,6 @@ public:
 
    bool isSigned() const { return !gpgKey.isEmpty(); }
    bool verifiedSignature() const { return mGoodSignature && !gpgKey.isEmpty(); }
-
-   static const QString ZERO_SHA;
-   static const QString INIT_SHA;
 
    uint pos = 0;
    QString sha;

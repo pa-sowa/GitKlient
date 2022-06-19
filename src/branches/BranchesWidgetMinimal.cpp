@@ -1,5 +1,6 @@
 #include "BranchesWidgetMinimal.h"
 
+#include <GitBase.h>
 #include <GitCache.h>
 #include <GitStashes.h>
 #include <GitSubmodules.h>
@@ -70,6 +71,14 @@ bool BranchesWidgetMinimal::eventFilter(QObject *obj, QEvent *event)
 void BranchesWidgetMinimal::addActionToMenu(const QString &sha, const QString &name, QMenu *menu)
 {
    const auto action = new QAction(name, menu);
+
+   if (mGit->getCurrentBranch() == name)
+   {
+      auto font = action->font();
+      font.setBold(true);
+      action->setFont(font);
+   }
+
    action->setData(sha);
    connect(action, &QAction::triggered, this, [this, sha] { emit commitSelected(sha); });
 

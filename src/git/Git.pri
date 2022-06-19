@@ -14,14 +14,15 @@ HEADERS += \
     $$PWD/GitMerge.h \
     $$PWD/GitPatches.h \
     $$PWD/GitRemote.h \
-    $$PWD/GitRepoLoader.h \
     $$PWD/GitRequestorProcess.h \
     $$PWD/GitStashes.h \
     $$PWD/GitSubmodules.h \
     $$PWD/GitSubtree.h \
     $$PWD/GitSyncProcess.h \
     $$PWD/GitTags.h \
-    $$PWD/GitWip.h
+    $$PWD/GitWip.h \
+    $$PWD/RevisionFiles.h \
+    $$PWD/WipRevisionInfo.h
 
 SOURCES += \
     $$PWD/AGitProcess.cpp \
@@ -37,11 +38,11 @@ SOURCES += \
     $$PWD/GitMerge.cpp \
     $$PWD/GitPatches.cpp \
     $$PWD/GitRemote.cpp \
-    $$PWD/GitRepoLoader.cpp \
     $$PWD/GitRequestorProcess.cpp \
     $$PWD/GitStashes.cpp \
     $$PWD/GitSubmodules.cpp \
     $$PWD/GitSubtree.cpp \
     $$PWD/GitSyncProcess.cpp \
     $$PWD/GitTags.cpp \
-    $$PWD/GitWip.cpp
+    $$PWD/GitWip.cpp \
+    $$PWD/RevisionFiles.cpp

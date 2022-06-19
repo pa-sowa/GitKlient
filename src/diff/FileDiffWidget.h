@@ -86,7 +86,7 @@ public:
    */
    bool reload() override;
 
-   void changeFontSize() override;
+   void updateFontSize() override;
 
    /*!
     \brief Configures the diff view with the two commits that will be compared and the file that will be applied.
@@ -95,11 +95,9 @@ public:
     \param previousSha The SHA to compare to.
     \param file The file that will show the diff.
     \param editMode Enters edit mode directly.
-    \param isStaged whether file is staged for a commit
     \return bool Returns true if the configuration was applied, otherwise false.
    */
-   bool configure(const QString &currentSha, const QString &previousSha, const QString &file, bool isStaged,
-                  bool editMode = false);
+   bool configure(const QString &currentSha, const QString &previousSha, const QString &file, bool isCached);
 
    /**
     * @brief setFileVsFileEnable Enables the widget to show file vs file view.
@@ -114,11 +112,6 @@ public:
    void setFullViewEnabled(bool enable);
 
    /**
-    * @brief hideBackButton Hides the back button.
-    */
-   void hideBackButton() const;
-
-   /**
     * @brief getCurrentFile Gets the current loaded file.
     * @return The current file name.
     */
@@ -126,27 +119,17 @@ public:
 
 private:
    QString mCurrentFile;
-   bool mIsStaged = true;
-   QPushButton *mBack = nullptr;
+   bool mIsCached = false;
    QPushButton *mGoPrevious = nullptr;
    QPushButton *mGoNext = nullptr;
-   QPushButton *mEdition = nullptr;
    QPushButton *mFullView = nullptr;
    QPushButton *mSplitView = nullptr;
-   QPushButton *mSave = nullptr;
-   QPushButton *mStage = nullptr;
-   QPushButton *mRevert = nullptr;
-   QLabel *mFileNameLabel = nullptr;
-   QFrame *mTitleFrame = nullptr;
    FileDiffView *mNewFile = nullptr;
    QLineEdit *mSearchOld = nullptr;
    FileDiffView *mOldFile = nullptr;
-   QVector<int> mModifications;
    bool mFileVsFile = false;
    DiffInfo mChunks;
    int mCurrentChunkLine = 0;
-   FileEditor *mFileEditor = nullptr;
-   QStackedWidget *mViewStackedWidget = nullptr;
 
    /**
     * @brief moveChunkUp Moves to the previous diff chunk.
@@ -163,10 +146,6 @@ private:
     */
    void enterEditionMode(bool enter);
 
-   /**
-    * @brief endEditFile Closes the file editor.
-    */
-   void endEditFile();
    /**
     * @brief stageFile Stages the file.
     */

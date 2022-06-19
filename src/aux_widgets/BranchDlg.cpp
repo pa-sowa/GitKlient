@@ -32,26 +32,27 @@ BranchDlg::BranchDlg(BranchDlgConfig config, QWidget *parent)
          break;
       case BranchDlgMode::RENAME:
          ui->pbAccept->setText(tr("Rename"));
-         setWindowTitle("Rename branch");
+         setWindowTitle(tr("Rename branch"));
          break;
       case BranchDlgMode::CREATE_CHECKOUT:
          setWindowTitle(tr("Create and checkout branch"));
-         ui->leOldName->setHidden(true);
+         ui->currentBranchFrame->setHidden(true);
          break;
       case BranchDlgMode::CREATE_FROM_COMMIT:
          setWindowTitle(tr("Create branch at commit"));
-         ui->leOldName->setHidden(true);
+         ui->currentBranchFrame->setHidden(true);
          break;
       case BranchDlgMode::CREATE_CHECKOUT_FROM_COMMIT:
          setWindowTitle(tr("Create and checkout branch"));
-         ui->leOldName->setHidden(true);
+         ui->currentBranchFrame->setHidden(true);
          break;
       case BranchDlgMode::STASH_BRANCH:
          setWindowTitle(tr("Stash branch"));
          break;
       case BranchDlgMode::PUSH_UPSTREAM:
+         connect(ui->chbCopyRemote, &QCheckBox::stateChanged, this, &BranchDlg::copyBranchName);
          ui->chbCopyRemote->setVisible(true);
-         connect(ui->chbCopyRemote, &QCheckBox::clicked, this, &BranchDlg::copyBranchName);
+         ui->chbCopyRemote->setChecked(true);
          setWindowTitle(tr("Push upstream branch"));
          ui->pbAccept->setText(tr("Push"));
          break;
@@ -111,7 +112,7 @@ void BranchDlg::accept()
       }
       else if (mConfig.mDialogMode == BranchDlgMode::CREATE_CHECKOUT)
       {
-         ret = branches.checkoutNewLocalBranch(ui->leNewName->text());
+         ret = branches.checkoutNewLocalBranchFromAnotherBranch(ui->leOldName->text(), ui->leNewName->text());
 
          if (ret.success)
          {
@@ -202,6 +203,7 @@ void BranchDlg::accept()
 
 void BranchDlg::copyBranchName()
 {
-   const auto remote = ui->leOldName->text();
-   ui->leNewName->setText(remote);
+   const auto checked = ui->chbCopyRemote->isChecked();
+   ui->leNewName->setVisible(!checked);
+   ui->leNewName->setText(checked ? ui->leOldName->text() : "");
 }

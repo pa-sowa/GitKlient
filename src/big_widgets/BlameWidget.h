@@ -63,13 +63,7 @@ signals:
     * @param parentSha The previous sha
     * @param file The full path of the file to diff
     */
-   void showFileDiff(const QString &sha, const QString &parentSha, const QString &file, bool isStaged);
-
-   /**
-    * @brief Signal triggered when the user wants to see the diff of the selected SHA compared to its previous one.
-    * @param shas The selected commit SHA and its previous one.
-    */
-   void signalOpenDiff(const QStringList &shas);
+   void showFileDiff(const QString &sha, const QString &parentSha, const QString &file);
 
 public:
    /**
@@ -112,10 +106,10 @@ private:
    QSharedPointer<GitCache> mCache;
    QSharedPointer<GitBase> mGit;
    QSharedPointer<GitQlientSettings> mSettings;
-   QFileSystemModel *fileSystemModel = nullptr;
+   QFileSystemModel *mFileSystemModel = nullptr;
    CommitHistoryModel *mRepoModel = nullptr;
    CommitHistoryView *mRepoView = nullptr;
-   QTreeView *fileSystemView = nullptr;
+   QTreeView *mFileSystemView = nullptr;
    QTabWidget *mTabWidget = nullptr;
    QString mWorkingDirectory;
    QMap<QString, FileBlameWidget *> mTabsMap;
@@ -153,10 +147,7 @@ private:
     */
    void reloadHistory(int tabIndex);
 
-   /*!
-     \brief Retrieves the SHA from the QModelIndex and triggers the \ref signalOpenDiff signal.
+   void showFileSystemMenu(const QPoint &pos);
 
-     \param index The index from the model.
-    */
-   void openDiff(const QModelIndex &index);
+   void openExternalEditor();
 };

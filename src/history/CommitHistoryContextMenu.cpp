@@ -2,21 +2,18 @@
 
 #include <BranchDlg.h>
 #include <CommitInfo.h>
-#include <CreateIssueDlg.h>
-#include <CreatePullRequestDlg.h>
+#include <ConfigData.h>
 #include <GitBase.h>
 #include <GitBranches.h>
 #include <GitCache.h>
 #include <GitConfig.h>
 #include <GitHistory.h>
-#include <GitHubRestApi.h>
 #include <GitLocal.h>
 #include <GitPatches.h>
+#include <GitQlientSettings.h>
 #include <GitQlientStyles.h>
 #include <GitRemote.h>
-#include <GitServerCache.h>
 #include <GitStashes.h>
-#include <MergePullRequestDlg.h>
 #include <PullDlg.h>
 #include <SquashDlg.h>
 #include <TagDlg.h>
@@ -33,13 +30,11 @@
 using namespace QLogger;
 
 CommitHistoryContextMenu::CommitHistoryContextMenu(const QSharedPointer<GitCache> &cache,
-                                                   const QSharedPointer<GitBase> &git,
-                                                   const QSharedPointer<GitServerCache> &gitServerCache,
-                                                   const QStringList &shas, QWidget *parent)
+                                                   const QSharedPointer<GitBase> &git, const QStringList &shas,
+                                                   QWidget *parent)
    : QMenu(parent)
    , mCache(cache)
    , mGit(git)
-   , mGitServerCache(gitServerCache)
    , mShas(shas)
 {
    setAttribute(Qt::WA_DeleteOnClose);
@@ -58,7 +53,7 @@ void CommitHistoryContextMenu::createIndividualShaMenu()
    {
       const auto sha = mShas.first();
 
-      if (sha == CommitInfo::ZERO_SHA)
+      if (sha == ZERO_SHA)
       {
          const auto stashMenu = addMenu(tr("Stash"));
          const auto stashAction = stashMenu->addAction(tr("Push"));
@@ -68,10 +63,7 @@ void CommitHistoryContextMenu::createIndividualShaMenu()
          connect(popAction, &QAction::triggered, this, &CommitHistoryContextMenu::stashPop);
       }
 
-      const auto commitAction = addAction(tr("See diff"));
-      connect(commitAction, &QAction::triggered, this, [this]() { emit signalOpenDiff(mShas.first()); });
-
-      if (sha != CommitInfo::ZERO_SHA)
+      if (sha != ZERO_SHA)
       {
          const auto createMenu = addMenu(tr("Create"));
 
@@ -99,9 +91,14 @@ void CommitHistoryContextMenu::createIndividualShaMenu()
 
             if (lastShaStr == sha)
             {
-               const auto amendCommitAction = addAction(tr("Amend"));
+               const auto amendCommitAction = addAction(tr("Amend (edit last commit)"));
+               amendCommitAction->setToolTip(tr("Edit the last commit of the branch."));
                connect(amendCommitAction, &QAction::triggered, this,
                        [this]() { emit signalAmendCommit(mShas.first()); });
+
+               const auto amendNoEditCommitAction = addAction(tr("Amend without edit"));
+               amendNoEditCommitAction->setToolTip(tr("Edit the last commit of the branch."));
+               connect(amendNoEditCommitAction, &QAction::triggered, this, &CommitHistoryContextMenu::amendNoEdit);
 
                const auto applyMenu = addMenu(tr("Apply"));
 
@@ -129,13 +126,17 @@ void CommitHistoryContextMenu::createIndividualShaMenu()
 
          const auto resetMenu = addMenu(tr("Reset"));
 
-         const auto resetSoftAction = resetMenu->addAction(tr("Soft"));
+         const auto resetSoftAction = resetMenu->addAction(tr("Soft (keep changes)"));
+         resetSoftAction->setToolTip(tr("Point to the selected commit <strong>keeping all changes</strong>."));
          connect(resetSoftAction, &QAction::triggered, this, &CommitHistoryContextMenu::resetSoft);
 
-         const auto resetMixedAction = resetMenu->addAction(tr("Mixed"));
+         const auto resetMixedAction = resetMenu->addAction(tr("Mixed (keep files, reset their changes)"));
+         resetMixedAction->setToolTip(
+             tr("Point to the selected commit <strong>keeping all changes but reseting the file status<strong>."));
          connect(resetMixedAction, &QAction::triggered, this, &CommitHistoryContextMenu::resetMixed);
 
-         const auto resetHardAction = resetMenu->addAction(tr("Hard"));
+         const auto resetHardAction = resetMenu->addAction(tr("Hard (discard chanbges)"));
+         resetHardAction->setToolTip(tr("Point to the selected commit <strong>losing all changes<strong>."));
          connect(resetHardAction, &QAction::triggered, this, &CommitHistoryContextMenu::resetHard);
 
          addSeparator();
@@ -153,57 +154,11 @@ void CommitHistoryContextMenu::createIndividualShaMenu()
          });
       }
    }
-
-   if (mGitServerCache)
-   {
-      const auto isGitHub = mGitServerCache->getPlatform() == GitServer::Platform::GitHub;
-      const auto gitServerMenu = new QMenu(QString::fromUtf8(isGitHub ? "GitHub" : "GitLab"), this);
-
-      addSeparator();
-      addMenu(gitServerMenu);
-
-      if (const auto pr = mGitServerCache->getPullRequest(mShas.first()); singleSelection && pr.isValid())
-      {
-         const auto prInfo = mGitServerCache->getPullRequest(mShas.first());
-
-         const auto checksMenu = new QMenu("Checks", gitServerMenu);
-         gitServerMenu->addMenu(checksMenu);
-
-         for (const auto &check : prInfo.state.checks)
-         {
-            const auto link = check.url;
-            checksMenu->addAction(QIcon(QString(":/icons/%1").arg(check.state)), check.name, this,
-                                  [link]() { QDesktopServices::openUrl(link); });
-         }
-
-         if (isGitHub)
-         {
-            connect(gitServerMenu->addAction(tr("Merge PR")), &QAction::triggered, this, [this, pr]() {
-               const auto mergeDlg = new MergePullRequestDlg(mGit, pr, mShas.first(), this);
-               connect(mergeDlg, &MergePullRequestDlg::signalRepositoryUpdated, this,
-                       &CommitHistoryContextMenu::fullReload);
-
-               mergeDlg->exec();
-            });
-         }
-
-         connect(gitServerMenu->addAction(tr("Show PR detailed view")), &QAction::triggered, this,
-                 [this, num = pr.number]() { emit showPrDetailedView(num); });
-
-         gitServerMenu->addSeparator();
-      }
-   }
 }
 
 void CommitHistoryContextMenu::createMultipleShasMenu()
 {
-   if (mShas.count() == 2)
-   {
-      const auto diffAction = addAction(tr("See diff"));
-      connect(diffAction, &QAction::triggered, this, [this]() { emit signalOpenCompareDiff(mShas); });
-   }
-
-   if (!mShas.contains(CommitInfo::ZERO_SHA))
+   if (!mShas.contains(ZERO_SHA))
    {
       const auto exportAsPatchAction = addAction(tr("Export as patch"));
       connect(exportAsPatchAction, &QAction::triggered, this, &CommitHistoryContextMenu::exportAsPatch);
@@ -424,7 +379,7 @@ void CommitHistoryContextMenu::applyPatch()
    const QString fileName(QFileDialog::getOpenFileName(this, tr("Select a patch to apply")));
    GitPatches git(mGit);
 
-   if (!fileName.isEmpty() && git.applyPatch(fileName))
+   if (!fileName.isEmpty() && git.applyPatch(fileName).success)
       emit logReload();
 }
 
@@ -433,7 +388,7 @@ void CommitHistoryContextMenu::applyCommit()
    const QString fileName(QFileDialog::getOpenFileName(this, "Select a patch to apply"));
    GitPatches git(mGit);
 
-   if (!fileName.isEmpty() && git.applyPatch(fileName, true))
+   if (!fileName.isEmpty() && git.applyPatch(fileName, true).success)
       emit logReload();
 }
 
@@ -486,9 +441,12 @@ void CommitHistoryContextMenu::push()
 
 void CommitHistoryContextMenu::pull()
 {
+   GitQlientSettings settings(mGit->getGitDir());
+   const auto updateOnPull = settings.localValue("UpdateOnPull", true).toBool();
+
    QApplication::setOverrideCursor(QCursor(Qt::WaitCursor));
    GitRemote git(mGit);
-   const auto ret = git.pull();
+   const auto ret = git.pull(updateOnPull);
    QApplication::restoreOverrideCursor();
 
    if (ret.success)
@@ -517,9 +475,12 @@ void CommitHistoryContextMenu::pull()
 
 void CommitHistoryContextMenu::fetch()
 {
+   GitQlientSettings settings(mGit->getGitDir());
+   const auto pruneOnFetch = settings.localValue("PruneOnFetch", true).toBool();
+
    GitRemote git(mGit);
 
-   if (git.fetch())
+   if (git.fetch(pruneOnFetch))
       emit fullReload();
 }
 
@@ -576,8 +537,6 @@ void CommitHistoryContextMenu::merge()
 {
    const auto action = qobject_cast<QAction *>(sender());
    const auto fromBranch = action->data().toString();
-
-   GitRemote git(mGit);
    const auto currentBranch = mGit->getCurrentBranch();
 
    emit signalMergeRequired(currentBranch, fromBranch);
@@ -587,8 +546,6 @@ void CommitHistoryContextMenu::mergeSquash()
 {
    const auto action = qobject_cast<QAction *>(sender());
    const auto fromBranch = action->data().toString();
-
-   GitRemote git(mGit);
    const auto currentBranch = mGit->getCurrentBranch();
 
    emit mergeSqushRequested(currentBranch, fromBranch);
@@ -690,5 +647,38 @@ void CommitHistoryContextMenu::showSquashDialog()
       SquashDlg squash(mGit, mCache, mShas, this);
       connect(&squash, &SquashDlg::changesCommitted, this, &CommitHistoryContextMenu::fullReload);
       squash.exec();
+   }
+}
+
+void CommitHistoryContextMenu::amendNoEdit()
+{
+   GitLocal git(mGit);
+   const auto ret = git.ammend();
+   emit logReload();
+
+   if (ret.success)
+   {
+      const auto newSha = mGit->getLastCommit().output.trimmed();
+      auto commit = mCache->commitInfo(mShas.first());
+      const auto oldSha = commit.sha;
+      commit.sha = newSha;
+
+      mCache->updateCommit(oldSha, std::move(commit));
+
+      GitHistory git(mGit);
+      const auto ret = git.getDiffFiles(mShas.first(), commit.firstParent());
+
+      mCache->insertRevisionFiles(mShas.first(), commit.firstParent(), RevisionFiles(ret.output));
+   }
+   else
+   {
+      QMessageBox msgBox(QMessageBox::Critical, tr("Error when amending"),
+                         tr("There were problems during the commit "
+                            "operation. Please, see the detailed "
+                            "description for more information."),
+                         QMessageBox::Ok, this);
+      msgBox.setDetailedText(ret.output);
+      msgBox.setStyleSheet(GitQlientStyles::getStyles());
+      msgBox.exec();
    }
 }

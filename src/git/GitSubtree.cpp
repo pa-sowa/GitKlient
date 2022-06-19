@@ -1,5 +1,4 @@
 #include <GitBase.h>
-#include <GitQlientSettings.h>
 #include <GitSubtree.h>
 
 #include <QLogger.h>
@@ -15,44 +14,18 @@ GitExecResult GitSubtree::add(const QString &url, const QString &ref, const QStr
 {
    QLog_Debug("UI", "Adding a subtree");
 
-   GitQlientSettings settings(mGitBase->getGitDir());
+   auto cmd = QString("git subtree add --prefix=%1 %2 %3").arg(name, url, ref);
+   QLog_Trace("Git", QString("Adding a subtree: {%1}").arg(cmd));
 
-   for (auto i = 0;; ++i)
-   {
-      const auto repo = settings.localValue(QString("Subtrees/%1.prefix").arg(i)).toString();
+   if (squash)
+      cmd.append(" --squash");
 
-      if (repo == name)
-      {
-         settings.setLocalValue(QString("Subtrees/%1.url").arg(i), url);
-         settings.setLocalValue(QString("Subtrees/%1.ref").arg(i), ref);
+   auto ret = mGitBase->run(cmd);
 
-         auto cmd = QString("git subtree add --prefix=%1 %2 %3").arg(name, url, ref);
+   if (ret.output.contains("Cannot"))
+      ret.success = false;
 
-         QLog_Trace("Git", QString("Adding a subtree: {%1}").arg(cmd));
-
-         if (squash)
-            cmd.append(" --squash");
-
-         auto ret = mGitBase->run(cmd);
-
-         if (ret.output.contains("Cannot"))
-            ret.success = false;
-
-         return ret;
-      }
-      else if (repo.isEmpty())
-      {
-         settings.setLocalValue(QString("Subtrees/%1.prefix").arg(i), name);
-         settings.setLocalValue(QString("Subtrees/%1.url").arg(i), url);
-         settings.setLocalValue(QString("Subtrees/%1.ref").arg(i), ref);
-
-         QLog_Trace("Git", QString("Updating subtree info: {%1}").arg(name));
-
-         return { true, "" };
-      }
-   }
-
-   return { false, "" };
+   return ret;
 }
 
 GitExecResult GitSubtree::pull(const QString &url, const QString &ref, const QString &prefix) const

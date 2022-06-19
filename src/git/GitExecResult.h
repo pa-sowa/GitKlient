@@ -26,14 +26,15 @@
 #include <QPair>
 #include <QVariant>
 
+static const QString ZERO_SHA = "0000000000000000000000000000000000000000";
+static const QString INIT_SHA = "4b825dc642cb6eb9a060e54bf8d69288fbee4904";
+
 struct GitExecResult
 {
    GitExecResult() = default;
    GitExecResult(bool ret, QString v);
    GitExecResult(const QPair<bool, QString> &result);
    GitExecResult &operator=(const QPair<bool, QString> &result);
-   operator bool();
-
    bool success = false;
    QString output {};
 };
